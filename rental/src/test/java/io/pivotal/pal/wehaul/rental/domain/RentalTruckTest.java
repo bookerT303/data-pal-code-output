@@ -1,6 +1,7 @@
 package io.pivotal.pal.wehaul.rental.domain;
 
-import org.junit.Before;
+import io.pivotal.pal.wehaul.rental.domain.event.RentalTruckDroppedOff;
+import io.pivotal.pal.wehaul.rental.domain.event.RentalTruckReserved;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -9,6 +10,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -17,19 +19,27 @@ public class RentalTruckTest {
     @Mock
     private TruckSizeLookupClient mockTruckSizeLookupClient;
 
-    private RentalTruck.Factory rentalTruckFactory;
+    @Test
+    public void createRentableTruck() {
+        when(mockTruckSizeLookupClient.getSizeByMakeModel(any(), any()))
+                .thenReturn(RentalTruckSize.LARGE);
 
-    @Before
-    public void setUp() {
-        when(mockTruckSizeLookupClient.getSizeByMakeModel(any(), any())).thenReturn(RentalTruckSize.LARGE);
+        RentalTruck truck =
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
 
-        rentalTruckFactory = new RentalTruck.Factory(mockTruckSizeLookupClient);
+        assertThat(truck.getVin()).isEqualTo("test-0001");
+        assertThat(truck.getStatus()).isEqualTo(RentalTruckStatus.RENTABLE);
+        assertThat(truck.getSize()).isEqualTo(RentalTruckSize.LARGE);
+
+        verify(mockTruckSizeLookupClient).getSizeByMakeModel("some-make", "some-model");
     }
 
     @Test
     public void reserve() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
         String customerName = "some-customer-name";
 
         truck.reserve(customerName);
@@ -37,12 +47,16 @@ public class RentalTruckTest {
         assertThat(truck.getStatus()).isEqualTo(RentalTruckStatus.RESERVED);
         assertThat(truck.getRental()).isNotNull();
         assertThat(truck.getRental().getCustomerName()).isEqualTo(customerName);
+        assertThat(truck.getDomainEvents().size()).isEqualTo(1);
+        assertThat(truck.getDomainEvents().get(0))
+                .isEqualToComparingOnlyGivenFields(new RentalTruckReserved(truck), "vin");
     }
 
     @Test
     public void pickUp() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
         String customerName = "some-customer-name";
         truck.reserve(customerName);
 
@@ -54,21 +68,29 @@ public class RentalTruckTest {
     @Test
     public void dropOff() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
         String customerName = "some-customer-name";
         truck.reserve(customerName);
         truck.pickUp();
 
-        truck.dropOff();
+        int distanceTraveled = 100;
+        truck.dropOff(distanceTraveled);
 
         assertThat(truck.getStatus()).isEqualTo(RentalTruckStatus.RENTABLE);
         assertThat(truck.getRental()).isNull();
+        assertThat(truck.getDomainEvents().size()).isEqualTo(2);
+        assertThat(truck.getDomainEvents().get(1))
+                .isEqualToComparingOnlyGivenFields(
+                        new RentalTruckDroppedOff(truck, distanceTraveled), "vin", "distanceTraveled"
+                );
     }
 
     @Test
     public void preventRenting() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
 
         truck.preventRenting();
 
@@ -78,7 +100,8 @@ public class RentalTruckTest {
     @Test
     public void allowRenting() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
 
         truck.preventRenting();
 
@@ -90,7 +113,8 @@ public class RentalTruckTest {
     @Test
     public void reserve_whenAnythingButRentable() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
         String customerName = "some-customer-name";
         truck.preventRenting();
 
@@ -104,7 +128,8 @@ public class RentalTruckTest {
     @Test
     public void pickUp_whenNotReserved() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
 
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> truck.pickUp())
@@ -116,12 +141,13 @@ public class RentalTruckTest {
     @Test
     public void dropOff_whenNotPickedUp() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
         String customerName = "some-customer-name";
         truck.reserve(customerName);
 
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> truck.dropOff())
+                .isThrownBy(() -> truck.dropOff(100))
                 .withMessage("Only rented trucks can be dropped off");
 
         assertThat(truck.getStatus()).isEqualTo(RentalTruckStatus.RESERVED);
@@ -130,7 +156,8 @@ public class RentalTruckTest {
     @Test
     public void preventRenting_whenAnythingButRentable() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
         String customerName = "some-customer-name";
         truck.reserve(customerName);
 
@@ -144,7 +171,8 @@ public class RentalTruckTest {
     @Test
     public void allowRenting_whenAlreadyRentable() {
         RentalTruck truck =
-                rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+                new RentalTruck.Factory(mockTruckSizeLookupClient)
+                        .createRentableTruck("test-0001", "some-make", "some-model");
 
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> truck.allowRenting())

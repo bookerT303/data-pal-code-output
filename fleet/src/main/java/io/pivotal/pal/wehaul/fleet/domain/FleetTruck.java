@@ -1,5 +1,8 @@
 package io.pivotal.pal.wehaul.fleet.domain;
 
+import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckPurchased;
+import org.springframework.data.domain.AbstractAggregateRoot;
+
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +11,7 @@ import static javax.persistence.CascadeType.ALL;
 
 @Entity
 @Table(name = "fleet_truck")
-public class FleetTruck {
+public class FleetTruck extends AbstractAggregateRoot {
 
     @Id
     private String vin;
@@ -119,6 +122,9 @@ public class FleetTruck {
             fleetTruck.status = FleetTruckStatus.IN_INSPECTION;
             fleetTruck.odometerReading = odometerReading;
             fleetTruck.makeModel = truckInfoLookupClient.getMakeModelByVin(vin);
+
+            FleetTruckPurchased fleetTruckPurchased = new FleetTruckPurchased(fleetTruck);
+            fleetTruck.registerEvent(fleetTruckPurchased);
 
             return fleetTruck;
         }

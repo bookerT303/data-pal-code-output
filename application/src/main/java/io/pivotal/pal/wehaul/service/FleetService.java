@@ -17,24 +17,21 @@ public class FleetService {
     private final DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository;
     private final FleetTruck.Factory fleetTruckFactory;
 
-    public FleetService(
-            FleetTruck.Factory fleetTruckFactory,
-            FleetTruckRepository fleetTruckRepository,
-            DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository
-    ) {
-        this.fleetTruckFactory = fleetTruckFactory;
+    public FleetService(FleetTruckRepository fleetTruckRepository,
+                        DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository,
+                        FleetTruck.Factory fleetTruckFactory) {
         this.fleetTruckRepository = fleetTruckRepository;
         this.distanceSinceLastInspectionRepository = distanceSinceLastInspectionRepository;
+        this.fleetTruckFactory = fleetTruckFactory;
     }
 
-    public FleetTruck buyTruck(String vin, int odometerReading) {
+    public void buyTruck(String vin, int odometerReading) {
         FleetTruck truck = fleetTruckFactory.buyTruck(vin, odometerReading);
 
         fleetTruckRepository.save(truck);
-        return truck;
     }
 
-    public void returnFromInspection(String vin, String notes, int odometerReading) {
+    public void returnTruckFromInspection(String vin, String notes, int odometerReading) {
         FleetTruck truck = fleetTruckRepository.findOne(vin);
 
         if (truck == null) {
@@ -45,7 +42,7 @@ public class FleetService {
         fleetTruckRepository.save(truck);
     }
 
-    public void sendForInspection(String vin) {
+    public void sendTruckForInspection(String vin) {
         FleetTruck truck = fleetTruckRepository.findOne(vin);
 
         if (truck == null) {
@@ -57,7 +54,7 @@ public class FleetService {
         fleetTruckRepository.save(truck);
     }
 
-    public void removeFromYard(String vin) {
+    public void removeTruckFromYard(String vin) {
         FleetTruck truck = fleetTruckRepository.findOne(vin);
 
         if (truck == null) {
@@ -69,7 +66,7 @@ public class FleetService {
         fleetTruckRepository.save(truck);
     }
 
-    public void returnToYard(String vin, int distanceTraveled) {
+    public void returnTruckToYard(String vin, int distanceTraveled) {
         FleetTruck truck = fleetTruckRepository.findOne(vin);
 
         if (truck == null) {
@@ -82,11 +79,10 @@ public class FleetService {
     }
 
     public Collection<DistanceSinceLastInspection> findAllDistanceSinceLastInspections() {
-        return distanceSinceLastInspectionRepository.findAllDistanceSinceLastInspections();
+        return distanceSinceLastInspectionRepository.findAll();
     }
 
     public Collection<FleetTruck> findAll() {
-
         return StreamSupport
             .stream(fleetTruckRepository.findAll().spliterator(), false)
             .collect(Collectors.toList());

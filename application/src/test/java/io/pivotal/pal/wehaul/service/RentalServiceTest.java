@@ -27,15 +27,14 @@ public class RentalServiceTest {
     private ArgumentCaptor<RentalTruck> truckCaptor;
 
     private RentalTruck.Factory rentalTruckFactory;
+    @Mock
+    private RentalTruck.Factory mockRentalTruckFactory;
     private RentalService rentalService;
 
     @Before
     public void setUp() {
         rentalTruckFactory = new RentalTruck.Factory(mockTruckSizeLookupClient);
-        rentalService = new RentalService(
-                mockTruckRepository,
-                rentalTruckFactory
-        );
+        rentalService = new RentalService(mockTruckRepository, mockRentalTruckFactory);
     }
 
     @Test
@@ -45,7 +44,7 @@ public class RentalServiceTest {
         String customerName = "some-customer-name";
 
 
-        rentalService.createRental(customerName);
+        rentalService.reserve(customerName);
 
 
         verify(mockTruckRepository).findTop1ByStatus(RentalTruckStatus.RENTABLE);
@@ -64,7 +63,7 @@ public class RentalServiceTest {
         when(mockTruckRepository.findTop1ByStatus(any())).thenReturn(null);
 
         assertThatExceptionOfType(IllegalStateException.class)
-                .isThrownBy(() -> rentalService.createRental("some-customer-name"))
+                .isThrownBy(() -> rentalService.reserve("some-customer-name"))
                 .withMessage("No trucks available to rent");
 
         verify(mockTruckRepository).findTop1ByStatus(RentalTruckStatus.RENTABLE);
@@ -109,7 +108,7 @@ public class RentalServiceTest {
         when(mockTruckRepository.findOneByRentalConfirmationNumber(any())).thenReturn(truck);
 
 
-        rentalService.dropOff(truck.getRental().getConfirmationNumber());
+        rentalService.dropOff(truck.getRental().getConfirmationNumber(), 100);
 
 
         verify(mockTruckRepository).save(truckCaptor.capture());
@@ -122,7 +121,7 @@ public class RentalServiceTest {
 
         UUID confirmationNumber = UUID.randomUUID();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> rentalService.dropOff(confirmationNumber))
+                .isThrownBy(() -> rentalService.dropOff(confirmationNumber, 100))
                 .withMessage(String.format("No rental found for id=%s", confirmationNumber));
 
 
@@ -132,16 +131,20 @@ public class RentalServiceTest {
 
     @Test
     public void addTruck() {
-        when(mockTruckSizeLookupClient.getSizeByMakeModel(any(), any())).thenReturn(RentalTruckSize.LARGE);
+        String vin = "test-0001";
+        String make = "test-make";
+        String model = "test-model";
+        RentalTruck mockTruck = mock(RentalTruck.class);
+        when(mockRentalTruckFactory.createRentableTruck(anyString(), anyString(), anyString()))
+                .thenReturn(mockTruck);
 
-        rentalService.addTruck("cool-vin", "make", "model");
 
-        verify(mockTruckRepository).save(truckCaptor.capture());
-        assertThat(truckCaptor.getValue()).isNotNull();
-        assertThat(truckCaptor.getValue().getVin()).isEqualToIgnoringCase("cool-vin");
-        assertThat(truckCaptor.getValue().getSize()).isEqualTo(RentalTruckSize.LARGE);
+        rentalService.addTruck(vin, make, model);
 
-        verify(mockTruckSizeLookupClient).getSizeByMakeModel("make", "model");
+
+        verify(mockRentalTruckFactory).createRentableTruck(vin, make, model);
+        verify(mockTruck).preventRenting();
+        verify(mockTruckRepository).save(mockTruck);
     }
 
     @Test
@@ -171,15 +174,13 @@ public class RentalServiceTest {
 
     @Test
     public void allowRenting() {
-        String vin = "best-vin";
-
         RentalTruck mockTruck = mock(RentalTruck.class);
         when(mockTruck.getVin()).thenReturn("best-vin");
 
         when(mockTruckRepository.findOne(any())).thenReturn(mockTruck);
 
 
-        rentalService.allowRenting(vin);
+        rentalService.allowRenting("best-vin");
 
 
         verify(mockTruckRepository).findOne("best-vin");

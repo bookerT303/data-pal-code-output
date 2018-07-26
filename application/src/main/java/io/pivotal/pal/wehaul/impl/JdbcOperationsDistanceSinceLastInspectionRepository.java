@@ -23,7 +23,7 @@ public class JdbcOperationsDistanceSinceLastInspectionRepository implements Dist
     }
 
     @Override
-    public Collection<DistanceSinceLastInspection> findAllDistanceSinceLastInspections() {
+    public Collection<DistanceSinceLastInspection> findAll() {
 
         return jdbcOperations.query(
                 FIND_ALL,

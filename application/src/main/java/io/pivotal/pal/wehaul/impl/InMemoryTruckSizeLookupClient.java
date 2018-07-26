@@ -2,10 +2,12 @@ package io.pivotal.pal.wehaul.impl;
 
 import io.pivotal.pal.wehaul.rental.domain.RentalTruckSize;
 import io.pivotal.pal.wehaul.rental.domain.TruckSizeLookupClient;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 public class InMemoryTruckSizeLookupClient implements TruckSizeLookupClient {
 
     private final Map<String, RentalTruckSize> dataStore;
@@ -20,4 +22,5 @@ public class InMemoryTruckSizeLookupClient implements TruckSizeLookupClient {
     public RentalTruckSize getSizeByMakeModel(String make, String model) {
         return dataStore.get(make + model);
     }
+
 }

@@ -1,6 +1,8 @@
 package io.pivotal.pal.wehaul.service;
 
-import io.pivotal.pal.wehaul.rental.domain.*;
+import io.pivotal.pal.wehaul.rental.domain.RentalTruck;
+import io.pivotal.pal.wehaul.rental.domain.RentalTruckRepository;
+import io.pivotal.pal.wehaul.rental.domain.RentalTruckStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -20,7 +22,7 @@ public class RentalService {
         this.rentalTruckFactory = rentalTruckFactory;
     }
 
-    public RentalTruck createRental(String customerName) {
+    public RentalTruck reserve(String customerName) {
         RentalTruck truck = rentalTruckRepository.findTop1ByStatus(RentalTruckStatus.RENTABLE);
         if (truck == null) {
             throw new IllegalStateException("No trucks available to rent");
@@ -44,13 +46,13 @@ public class RentalService {
         rentalTruckRepository.save(rentalTruck);
     }
 
-    public RentalTruck dropOff(UUID confirmationNumber) {
+    public RentalTruck dropOff(UUID confirmationNumber, int distanceTraveled) {
         RentalTruck rentalTruck = rentalTruckRepository.findOneByRentalConfirmationNumber(confirmationNumber);
         if (rentalTruck == null) {
             throw new IllegalArgumentException(String.format("No rental found for id=%s", confirmationNumber));
         }
 
-        rentalTruck.dropOff();
+        rentalTruck.dropOff(distanceTraveled);
 
         rentalTruckRepository.save(rentalTruck);
 
@@ -79,6 +81,7 @@ public class RentalService {
         }
 
         truck.preventRenting();
+
         rentalTruckRepository.save(truck);
     }
 
@@ -89,6 +92,7 @@ public class RentalService {
         }
 
         truck.allowRenting();
+
         rentalTruckRepository.save(truck);
     }
 }

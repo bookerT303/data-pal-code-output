@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collection;
 
 @RestController
+@RequestMapping("/fleet/trucks")
 public class FleetController {
 
     private final FleetService fleetService;
@@ -22,64 +23,59 @@ public class FleetController {
         this.rentalService = rentalService;
     }
 
-    @PostMapping("/trucks")
-    public ResponseEntity<Void> buyTruck(@RequestBody BuyTruckDto buyTruckDto) {
-
-        String vin = buyTruckDto.getVin();
-        int odometerReading = buyTruckDto.getOdometerReading();
-
-        FleetTruck fleetTruck = fleetService.buyTruck(vin, odometerReading);
-        rentalService.addTruck(
-                vin,
-                fleetTruck.getMakeModel().getMake(),
-                fleetTruck.getMakeModel().getModel()
-        );
-
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/trucks")
+    @GetMapping
     public ResponseEntity<Collection<FleetTruck>> getAllTrucks() {
         Collection<FleetTruck> trucks = fleetService.findAll();
         return ResponseEntity.ok(trucks);
     }
 
-    @PostMapping("/trucks/{vin}/send-for-inspection")
-    public ResponseEntity<Void> sendForInspection(@PathVariable String vin) {
+    @PostMapping
+    public ResponseEntity<Void> buyTruck(@RequestBody BuyTruckDto buyTruckDto) {
 
-        fleetService.sendForInspection(vin);
+        String vin = buyTruckDto.getVin();
+        int odometerReading = buyTruckDto.getOdometerReading();
+
+        fleetService.buyTruck(vin, odometerReading);
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{vin}/send-for-inspection")
+    public ResponseEntity<Void> sendTruckForInspection(@PathVariable String vin) {
+
+        fleetService.sendTruckForInspection(vin);
         rentalService.preventRenting(vin);
 
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{vin}/return-from-inspection")
-    public ResponseEntity<Void> returnFromInspection(
+    public ResponseEntity<Void> returnTruckFromInspection(
             @PathVariable String vin,
-            @RequestBody ReturnFromInspectionDto returnFromInspectionDto
+            @RequestBody ReturnTruckFromInspectionDto returnTruckFromInspectionDto
     ) {
 
-        String notes = returnFromInspectionDto.getNotes();
-        int odometerReading = returnFromInspectionDto.getOdometerReading();
+        String notes = returnTruckFromInspectionDto.getNotes();
+        int odometerReading = returnTruckFromInspectionDto.getOdometerReading();
 
-        fleetService.returnFromInspection(vin, notes, odometerReading);
+        fleetService.returnTruckFromInspection(vin, notes, odometerReading);
         rentalService.allowRenting(vin);
 
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/truck-since-inspections")
+    @GetMapping("/distance-since-last-inspections")
     public Collection<DistanceSinceLastInspection> listDistanceSinceLastInspections() {
         return fleetService.findAllDistanceSinceLastInspections();
     }
 
-    static class ReturnFromInspectionDto {
+    static class ReturnTruckFromInspectionDto {
 
         private final String notes;
         private final int odometerReading;
 
         @JsonCreator
-        ReturnFromInspectionDto(
+        ReturnTruckFromInspectionDto(
                 @JsonProperty(value = "notes", required = true) String notes,
                 @JsonProperty(value = "odometerReading", required = true) int odometerReading
         ) {
@@ -97,7 +93,7 @@ public class FleetController {
 
         @Override
         public String toString() {
-            return "ReturnFromInspectionDto{" +
+            return "ReturnTruckFromInspectionDto{" +
                     "notes='" + notes + '\'' +
                     ", odometerReading=" + odometerReading +
                     '}';

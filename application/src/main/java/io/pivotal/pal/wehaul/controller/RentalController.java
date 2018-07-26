@@ -2,9 +2,9 @@ package io.pivotal.pal.wehaul.controller;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.pivotal.pal.wehaul.service.FleetService;
 import io.pivotal.pal.wehaul.rental.domain.Rental;
 import io.pivotal.pal.wehaul.rental.domain.RentalTruck;
+import io.pivotal.pal.wehaul.service.FleetService;
 import io.pivotal.pal.wehaul.service.RentalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,32 +36,32 @@ public class RentalController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createRental(@RequestBody CreateRentalDto createRentalDto) {
+    public ResponseEntity<Void> reserveTruck(@RequestBody ReserveTruckDto reserveTruckDto) {
 
-        String customerName = createRentalDto.getCustomerName();
-        RentalTruck rentalTruck = rentalService.createRental(customerName);
+        String customerName = reserveTruckDto.getCustomerName();
+        RentalTruck rentalTruck = rentalService.reserve(customerName);
 
-        String truckVin = rentalTruck.getVin();
-        fleetService.removeFromYard(truckVin);
+        String vin = rentalTruck.getVin();
+        fleetService.removeTruckFromYard(vin);
 
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{confirmationNumber}/pick-up")
-    public ResponseEntity<Void> pickUpRental(@PathVariable UUID confirmationNumber) {
+    public ResponseEntity<Void> pickUp(@PathVariable UUID confirmationNumber) {
 
         rentalService.pickUp(confirmationNumber);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{confirmationNumber}/drop-off")
-    public ResponseEntity<Void> dropOffRental(@PathVariable UUID confirmationNumber,
+    public ResponseEntity<Void> dropOff(@PathVariable UUID confirmationNumber,
                                               @RequestBody DropOffRentalDto dropOffRentalDto) {
 
         int distanceTraveled = dropOffRentalDto.getDistanceTraveled();
-        RentalTruck rentalTruck = rentalService.dropOff(confirmationNumber);
-        String vin = rentalTruck.getVin();
-        fleetService.returnToYard(vin, distanceTraveled);
+        RentalTruck rental = rentalService.dropOff(confirmationNumber, distanceTraveled);
+        String vin = rental.getVin();
+        fleetService.returnTruckToYard(vin, distanceTraveled);
 
         return ResponseEntity.ok().build();
     }
@@ -87,12 +87,12 @@ public class RentalController {
         }
     }
 
-    static class CreateRentalDto {
+    static class ReserveTruckDto {
 
         private final String customerName;
 
         @JsonCreator
-        public CreateRentalDto(@JsonProperty(value = "customerName", required = true) String customerName) {
+        public ReserveTruckDto(@JsonProperty(value = "customerName", required = true) String customerName) {
             this.customerName = customerName;
         }
 
@@ -102,7 +102,7 @@ public class RentalController {
 
         @Override
         public String toString() {
-            return "CreateRentalDto{" +
+            return "ReserveTruckDto{" +
                     "customerName='" + customerName + '\'' +
                     '}';
         }

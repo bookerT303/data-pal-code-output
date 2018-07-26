@@ -32,9 +32,9 @@ public class FleetServiceTest {
     @Before
     public void setUp() {
         fleetService = new FleetService(
-                new FleetTruck.Factory(mockTruckInfoLookupClient),
                 mockFleetTruckRepository,
-                mockDistanceSinceLastInspectionRepository);
+                mockDistanceSinceLastInspectionRepository,
+                new FleetTruck.Factory(mockTruckInfoLookupClient));
     }
 
     @Test
@@ -52,7 +52,7 @@ public class FleetServiceTest {
     }
 
     @Test
-    public void returnFromInspection() {
+    public void returnTruckFromInspection() {
         String vin = "test-0001";
         MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
         when(mockTruckInfoLookupClient.getMakeModelByVin(vin)).thenReturn(makeModel);
@@ -61,7 +61,7 @@ public class FleetServiceTest {
         when(mockFleetTruckRepository.findOne(any())).thenReturn(truck);
 
 
-        fleetService.returnFromInspection(truck.getVin(), "some-notes", 2);
+        fleetService.returnTruckFromInspection(truck.getVin(), "some-notes", 2);
 
 
         InOrder inOrder = inOrder(mockFleetTruckRepository);
@@ -78,7 +78,7 @@ public class FleetServiceTest {
     }
 
     @Test
-    public void sendForInspection() {
+    public void sendTruckForInspection() {
         String vin = "test-0001";
         MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
         when(mockTruckInfoLookupClient.getMakeModelByVin(vin)).thenReturn(makeModel);
@@ -88,7 +88,7 @@ public class FleetServiceTest {
         when(mockFleetTruckRepository.findOne(any())).thenReturn(truck);
 
 
-        fleetService.sendForInspection(truck.getVin());
+        fleetService.sendTruckForInspection(truck.getVin());
 
 
         InOrder inOrder = inOrder(mockFleetTruckRepository);
@@ -97,7 +97,7 @@ public class FleetServiceTest {
     }
 
     @Test
-    public void removeFromYard() {
+    public void removeTruckFromYard() {
         String vin = "test-0001";
         MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
         when(mockTruckInfoLookupClient.getMakeModelByVin(vin)).thenReturn(makeModel);
@@ -106,14 +106,14 @@ public class FleetServiceTest {
         truck.returnFromInspection("note", 100);
         when(mockFleetTruckRepository.findOne(any())).thenReturn(truck);
 
-        fleetService.removeFromYard(truck.getVin());
+        fleetService.removeTruckFromYard(truck.getVin());
 
         verify(mockFleetTruckRepository).save(fleetTruckCaptor.capture());
         assertThat(fleetTruckCaptor.getValue().getStatus()).isEqualTo(FleetTruckStatus.NOT_INSPECTABLE);
     }
 
     @Test
-    public void returnToYard() {
+    public void returnTruckToYard() {
         String vin = "test-0001";
         MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
         when(mockTruckInfoLookupClient.getMakeModelByVin(vin)).thenReturn(makeModel);
@@ -123,7 +123,7 @@ public class FleetServiceTest {
         truck.removeFromYard();
         when(mockFleetTruckRepository.findOne(any())).thenReturn(truck);
 
-        fleetService.returnToYard(truck.getVin(), 200);
+        fleetService.returnTruckToYard(truck.getVin(), 200);
 
         verify(mockFleetTruckRepository).save(fleetTruckCaptor.capture());
         assertThat(fleetTruckCaptor.getValue().getStatus()).isEqualTo(FleetTruckStatus.INSPECTABLE);
@@ -134,44 +134,44 @@ public class FleetServiceTest {
     public void findAllDistanceSinceLastInspections() {
         fleetService.findAllDistanceSinceLastInspections();
 
-        verify(mockDistanceSinceLastInspectionRepository).findAllDistanceSinceLastInspections();
+        verify(mockDistanceSinceLastInspectionRepository).findAll();
     }
 
     @Test
-    public void returnFromInspection_whenNoTruckFound() {
+    public void returnTruckFromInspection_whenNoTruckFound() {
         String truckVin = "cant-find-me";
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> fleetService.returnFromInspection(truckVin, "some-notes", 5000))
+                .isThrownBy(() -> fleetService.returnTruckFromInspection(truckVin, "some-notes", 5000))
                 .withMessage(String.format("No truck found with VIN=%s", truckVin));
 
         verify(mockFleetTruckRepository, times(0)).save(any(FleetTruck.class));
     }
 
     @Test
-    public void sendForInspection_whenNoTruckFound() {
+    public void sendTruckForInspection_whenNoTruckFound() {
         String truckVin = "cant-find-me";
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> fleetService.sendForInspection(truckVin))
+                .isThrownBy(() -> fleetService.sendTruckForInspection(truckVin))
                 .withMessage(String.format("No truck found with VIN=%s", truckVin));
 
         verify(mockFleetTruckRepository, times(0)).save(any(FleetTruck.class));
     }
 
     @Test
-    public void removeFromYard_whenNoTruckFound() {
+    public void removeTruckFromYard_whenNoTruckFound() {
         String truckVin = "cant-find-me";
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> fleetService.removeFromYard(truckVin))
+                .isThrownBy(() -> fleetService.removeTruckFromYard(truckVin))
                 .withMessage(String.format("No truck found with VIN=%s", truckVin));
 
         verify(mockFleetTruckRepository, times(0)).save(any(FleetTruck.class));
     }
 
     @Test
-    public void returnToYard_whenNoTruckFound() {
+    public void returnTruckToYard_whenNoTruckFound() {
         String truckVin = "cant-find-me";
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> fleetService.returnToYard(truckVin, 100))
+                .isThrownBy(() -> fleetService.returnTruckToYard(truckVin, 100))
                 .withMessage(String.format("No truck found with VIN=%s", truckVin));
 
         verify(mockFleetTruckRepository, times(0)).save(any(FleetTruck.class));

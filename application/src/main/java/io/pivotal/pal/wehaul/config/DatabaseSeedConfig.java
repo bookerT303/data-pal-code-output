@@ -4,7 +4,6 @@ import io.pivotal.pal.wehaul.fleet.domain.FleetTruck;
 import io.pivotal.pal.wehaul.fleet.domain.FleetTruckRepository;
 import io.pivotal.pal.wehaul.rental.domain.RentalTruck;
 import io.pivotal.pal.wehaul.rental.domain.RentalTruckRepository;
-import io.pivotal.pal.wehaul.rental.domain.TruckSizeLookupClient;
 import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
@@ -34,11 +33,12 @@ public class DatabaseSeedConfig {
         FleetTruck inInspectionFleetTruck = fleetTruckFactory.buyTruck(vin, 0);
         fleetTruckRepository.save(inInspectionFleetTruck);
 
-        RentalTruck unrentableRentalTruck = rentalTruckFactory.createRentableTruck(
+        RentalTruck unrentableRentalTruck = rentalTruckFactory
+            .createRentableTruck(
                 vin,
                 inInspectionFleetTruck.getMakeModel().getMake(),
                 inInspectionFleetTruck.getMakeModel().getModel()
-        );
+            );
         unrentableRentalTruck.preventRenting();
         rentalTruckRepository.save(unrentableRentalTruck);
 
@@ -46,14 +46,15 @@ public class DatabaseSeedConfig {
         // Create another Truck in both Fleet + Rental perspectives that is rentable/not in inspection
         String vin2 = "test-0002";
         FleetTruck inspectableFleetTruck = fleetTruckFactory.buyTruck(vin2, 0);
-        inspectableFleetTruck.returnFromInspection("some-notes", 0);
+        inspectableFleetTruck.returnFromInspection("some notes", 0);
         fleetTruckRepository.save(inspectableFleetTruck);
 
-        RentalTruck rentableRentalTruck = rentalTruckFactory.createRentableTruck(
+        RentalTruck rentableRentalTruck = rentalTruckFactory
+            .createRentableTruck(
                 vin2,
                 inspectableFleetTruck.getMakeModel().getMake(),
                 inspectableFleetTruck.getMakeModel().getModel()
-        );
+            );
         rentalTruckRepository.save(rentableRentalTruck);
     }
 }

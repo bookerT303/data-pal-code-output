@@ -1,10 +1,14 @@
 package io.pivotal.pal.wehaul.rental.domain;
 
+import io.pivotal.pal.wehaul.rental.domain.event.RentalTruckDroppedOff;
+import io.pivotal.pal.wehaul.rental.domain.event.RentalTruckReserved;
+import org.springframework.data.domain.AbstractAggregateRoot;
+
 import javax.persistence.*;
 
 @Entity
 @Table(name = "rental_truck")
-public class RentalTruck {
+public class RentalTruck extends AbstractAggregateRoot {
 
     @Id
     @Column
@@ -43,7 +47,7 @@ public class RentalTruck {
         this.status = RentalTruckStatus.RENTED;
     }
 
-    public void dropOff() {
+    public void dropOff(int distanceTraveled) {
         if (status != RentalTruckStatus.RENTED) {
             throw new IllegalStateException("Only rented trucks can be dropped off");
         }
