@@ -2,7 +2,8 @@ package io.pivotal.pal.wehaul.controller;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.pivotal.pal.wehaul.domain.Rental;
+import io.pivotal.pal.wehaul.service.FleetService;
+import io.pivotal.pal.wehaul.rental.domain.Rental;
 import io.pivotal.pal.wehaul.service.RentalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,16 +15,21 @@ import java.util.UUID;
 public class RentalController {
 
     private final RentalService rentalService;
+    private final FleetService fleetService;
 
-    public RentalController(RentalService rentalService) {
+    public RentalController(RentalService rentalService, FleetService fleetService) {
         this.rentalService = rentalService;
+        this.fleetService = fleetService;
     }
 
     @PostMapping("/rentals")
     public ResponseEntity<Void> createRental(@RequestBody CreateRentalDto createRentalDto) {
 
         String customerName = createRentalDto.getCustomerName();
-        rentalService.createRental(customerName);
+        Rental rental = rentalService.createRental(customerName);
+
+        String truckVin = rental.getTruckVin();
+        fleetService.removeFromYard(truckVin);
 
         return ResponseEntity.ok().build();
     }
@@ -40,7 +46,9 @@ public class RentalController {
                                               @RequestBody DropOffRentalDto dropOffRentalDto) {
 
         int distanceTraveled = dropOffRentalDto.getDistanceTraveled();
-        rentalService.dropOff(rentalId, distanceTraveled);
+        Rental rental = rentalService.dropOff(rentalId, distanceTraveled);
+        String vin = rental.getTruckVin();
+        fleetService.returnToYard(vin, distanceTraveled);
 
         return ResponseEntity.ok().build();
     }
@@ -56,19 +64,19 @@ public class RentalController {
         private final int distanceTraveled;
 
         @JsonCreator
-        public DropOffRentalDto(@JsonProperty(value = "distanceTraveled", required = true) int distanceTraveled) {
+        DropOffRentalDto(@JsonProperty(value = "distanceTraveled", required = true) int distanceTraveled) {
             this.distanceTraveled = distanceTraveled;
         }
 
-        public int getDistanceTraveled() {
+        int getDistanceTraveled() {
             return distanceTraveled;
         }
 
         @Override
         public String toString() {
             return "DropOffRentalDto{" +
-                "distanceTraveled=" + distanceTraveled +
-                '}';
+                    "distanceTraveled=" + distanceTraveled +
+                    '}';
         }
     }
 
@@ -77,19 +85,19 @@ public class RentalController {
         private final String customerName;
 
         @JsonCreator
-        public CreateRentalDto(@JsonProperty(value = "customerName", required = true) String customerName) {
+        CreateRentalDto(@JsonProperty(value = "customerName", required = true) String customerName) {
             this.customerName = customerName;
         }
 
-        public String getCustomerName() {
+        String getCustomerName() {
             return customerName;
         }
 
         @Override
         public String toString() {
             return "CreateRentalDto{" +
-                "customerName='" + customerName + '\'' +
-                '}';
+                    "customerName='" + customerName + '\'' +
+                    '}';
         }
     }
 }

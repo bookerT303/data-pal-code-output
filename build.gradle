@@ -27,6 +27,7 @@ subprojects {
     dependencyManagement {
         dependencies {
             dependency 'org.assertj:assertj-core:3.9.1'
+            dependency 'org.hibernate.javax.persistence:hibernate-jpa-2.1-api:1.0.0.Final'
         }
     }
 }

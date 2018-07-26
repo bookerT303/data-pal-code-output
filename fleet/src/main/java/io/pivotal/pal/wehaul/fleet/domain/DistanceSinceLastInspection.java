@@ -1,16 +1,16 @@
 package io.pivotal.pal.wehaul.fleet.domain;
 
-public class TruckSinceInspection {
+public class DistanceSinceLastInspection {
 
     private String truckVin;
     private Integer lastInspectionDistance;
 
-    public TruckSinceInspection(String truckVin, Integer lastInspectionDistance) {
+    public DistanceSinceLastInspection(String truckVin, Integer lastInspectionDistance) {
         this.truckVin = truckVin;
         this.lastInspectionDistance = lastInspectionDistance;
     }
 
-    TruckSinceInspection() {
+    DistanceSinceLastInspection() {
         // default constructor
     }
 
@@ -24,7 +24,7 @@ public class TruckSinceInspection {
 
     @Override
     public String toString() {
-        return "TruckSinceInspection{" +
+        return "DistanceSinceLastInspection{" +
                 "truckVin=" + truckVin +
                 ", lastInspectionDistance=" + lastInspectionDistance +
                 '}';

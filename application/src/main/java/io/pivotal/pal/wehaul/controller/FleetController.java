@@ -1,43 +1,56 @@
-package io.pivotal.pal.wehaul;
+package io.pivotal.pal.wehaul.controller;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.pivotal.pal.wehaul.fleet.domain.TruckSinceInspection;
 import io.pivotal.pal.wehaul.fleet.domain.FleetTruck;
-import io.pivotal.pal.wehaul.fleet.service.FleetTruckService;
-import io.pivotal.pal.wehaul.rental.service.RentalService;
+import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspection;
+import io.pivotal.pal.wehaul.service.FleetService;
+import io.pivotal.pal.wehaul.service.RentalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 
 @RestController
-public class FleetTruckController {
+public class FleetController {
 
-    private final FleetTruckService fleetTruckService;
+    private final FleetService fleetService;
     private final RentalService rentalService;
 
-    public FleetTruckController(FleetTruckService fleetTruckService, RentalService rentalService) {
-        this.fleetTruckService = fleetTruckService;
+    public FleetController(FleetService fleetService, RentalService rentalService) {
+        this.fleetService = fleetService;
         this.rentalService = rentalService;
     }
 
     @PostMapping("/trucks")
-    public ResponseEntity<Void> buyTruck(@RequestBody BuyTruckDto body) {
-        // TODO: implement me using tests and previous implementation as guides
-        return null;
+    public ResponseEntity<Void> buyTruck(@RequestBody BuyTruckDto buyTruckDto) {
+
+        String vin = buyTruckDto.getVin();
+        int odometerReading = buyTruckDto.getOdometerReading();
+
+        FleetTruck fleetTruck = fleetService.buyTruck(vin, odometerReading);
+        rentalService.addTruck(
+                vin,
+                fleetTruck.getMakeModel().getMake(),
+                fleetTruck.getMakeModel().getModel()
+        );
+
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/trucks")
     public ResponseEntity<Collection<FleetTruck>> getAllTrucks() {
-        // TODO: implement me using tests and previous implementation as guides
-        return null;
+        Collection<FleetTruck> trucks = fleetService.findAll();
+        return ResponseEntity.ok(trucks);
     }
 
     @PostMapping("/trucks/{vin}/send-for-inspection")
     public ResponseEntity<Void> sendForInspection(@PathVariable String vin) {
-        // TODO: implement me using tests and previous implementation as guides
-        return null;
+
+        fleetService.sendForInspection(vin);
+        rentalService.preventRenting(vin);
+
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/trucks/{vin}/return-from-inspection")
@@ -45,16 +58,22 @@ public class FleetTruckController {
             @PathVariable String vin,
             @RequestBody ReturnFromInspectionDto returnFromInspectionDto
     ) {
-        // TODO: implement me using tests and previous implementation as guides
-        return null;
+
+        String notes = returnFromInspectionDto.getNotes();
+        int odometerReading = returnFromInspectionDto.getOdometerReading();
+
+        fleetService.returnFromInspection(vin, notes, odometerReading);
+        rentalService.allowRenting(vin);
+
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/truck-since-inspections")
-    public Collection<TruckSinceInspection> listTruckSinceInspections() {
-        return fleetTruckService.findAllTruckSinceInspections();
+    public Collection<DistanceSinceLastInspection> listDistanceSinceLastInspections() {
+        return fleetService.findAllDistanceSinceLastInspections();
     }
 
-    static class ReturnFromInspectionDto {
+    private static class ReturnFromInspectionDto {
 
         private final String notes;
         private final int odometerReading;
@@ -68,11 +87,11 @@ public class FleetTruckController {
             this.odometerReading = odometerReading;
         }
 
-        public String getNotes() {
+        String getNotes() {
             return notes;
         }
 
-        public int getOdometerReading() {
+        int getOdometerReading() {
             return odometerReading;
         }
 
@@ -85,23 +104,23 @@ public class FleetTruckController {
         }
     }
 
-    static class BuyTruckDto {
+    private static class BuyTruckDto {
 
         private final String vin;
         private final int odometerReading;
 
         @JsonCreator
         BuyTruckDto(@JsonProperty(value = "vin", required = true) String vin,
-                    @JsonProperty(value = "odometerReading", required = true) int odometerReading) {
+                           @JsonProperty(value = "odometerReading", required = true) int odometerReading) {
             this.vin = vin;
             this.odometerReading = odometerReading;
         }
 
-        public String getVin() {
+        String getVin() {
             return vin;
         }
 
-        public int getOdometerReading() {
+        int getOdometerReading() {
             return odometerReading;
         }
 

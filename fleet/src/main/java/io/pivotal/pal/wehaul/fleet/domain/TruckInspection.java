@@ -27,13 +27,6 @@ public class TruckInspection {
         // default constructor
     }
 
-    public TruckInspection(String truckVin, Integer odometerReading, String notes) {
-        this.id = UUID.randomUUID();
-        this.truckVin = truckVin;
-        this.odometerReading = odometerReading;
-        this.notes = notes;
-    }
-
     public static TruckInspection createTruckInspection(String truckVin, int odometerReading, String notes) {
         TruckInspection entry = new TruckInspection();
         entry.id = UUID.randomUUID();

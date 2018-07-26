@@ -16,36 +16,47 @@ public class FleetTruck {
     @Column
     private Integer odometerReading;
 
+    @Embedded
+    private MakeModel makeModel;
+
     FleetTruck() {
         // default constructor
     }
 
-    public static FleetTruck buyTruck(String vin, int odometerReading) {
-        if (odometerReading < 0) {
-            throw new IllegalArgumentException("Cannot buy a truck with negative odometer reading");
-        }
-        FleetTruck truck = new FleetTruck();
-        truck.vin = vin;
-        truck.status = FleetTruckStatus.IN_INSPECTION;
-        truck.odometerReading = odometerReading;
-
-        return truck;
-    }
-
     public void returnFromInspection(int odometerReading) {
-        // TODO: implement me
+        if (status != FleetTruckStatus.IN_INSPECTION) {
+            throw new IllegalStateException("Truck is not currently in inspection");
+        }
+        if (this.odometerReading > odometerReading) {
+            throw new IllegalArgumentException("Odometer reading cannot be less than previous reading");
+        }
+
+        this.status = FleetTruckStatus.INSPECTABLE;
+        this.odometerReading = odometerReading;
     }
 
     public void sendForInspection() {
-        // TODO: implement me
+        if (status != FleetTruckStatus.INSPECTABLE) {
+            throw new IllegalStateException("Truck cannot be inspected");
+        }
+
+        this.status = FleetTruckStatus.IN_INSPECTION;
     }
 
     public void removeFromYard() {
-        // TODO: implement me
+        if (status != FleetTruckStatus.INSPECTABLE) {
+            throw new IllegalStateException("Cannot prevent truck inspection");
+        }
+
+        this.status = FleetTruckStatus.NOT_INSPECTABLE;
     }
 
     public void returnToYard(int distanceTraveled) {
-        // TODO: implement me
+        if (status != FleetTruckStatus.NOT_INSPECTABLE) {
+            throw new IllegalStateException("Cannot allow truck inspection");
+        }
+        this.status = FleetTruckStatus.INSPECTABLE;
+        this.odometerReading += distanceTraveled;
     }
 
     public String getVin() {
@@ -60,16 +71,40 @@ public class FleetTruck {
         return odometerReading;
     }
 
-    public void setOdometerReading(Integer odometerReading) {
-        this.odometerReading = odometerReading;
+    public MakeModel getMakeModel() {
+        return makeModel;
     }
 
     @Override
     public String toString() {
         return "FleetTruck{" +
-                "vin=" + vin +
+                "vin='" + vin + '\'' +
                 ", status=" + status +
                 ", odometerReading=" + odometerReading +
+                ", makeModel=" + makeModel +
                 '}';
+    }
+
+    public static class Factory {
+
+        private final TruckInfoLookupClient truckInfoLookupClient;
+
+        public Factory(TruckInfoLookupClient truckInfoLookupClient) {
+            this.truckInfoLookupClient = truckInfoLookupClient;
+        }
+
+        public FleetTruck buyTruck(String vin, int odometerReading) {
+            if (odometerReading < 0) {
+                throw new IllegalArgumentException("Cannot buy a truck with negative odometer reading");
+            }
+            FleetTruck fleetTruck = new FleetTruck();
+            fleetTruck.vin = vin;
+            fleetTruck.status = FleetTruckStatus.IN_INSPECTION;
+            fleetTruck.odometerReading = odometerReading;
+            fleetTruck.makeModel = truckInfoLookupClient.getMakeModelByVin(vin);
+
+            return fleetTruck;
+        }
+
     }
 }

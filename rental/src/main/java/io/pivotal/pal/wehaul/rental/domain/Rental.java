@@ -38,11 +38,22 @@ public class Rental {
     }
 
     public void pickUp() {
-        // TODO: implement using the tests and previous implementation as guides
+        if (distanceTraveled != null) {
+            throw new IllegalStateException("Rental has already been picked up");
+        }
+
+        distanceTraveled = 0;
     }
 
     public void dropOff(int distanceTraveled) {
-        // TODO: implement using the tests and previous implementation as guides
+        if (this.distanceTraveled == null) {
+            throw new IllegalStateException("Cannot drop off before picking up rental");
+        }
+        if (this.distanceTraveled != 0) {
+            throw new IllegalStateException("Rental is already dropped off");
+        }
+
+        this.distanceTraveled = distanceTraveled;
     }
 
     public UUID getConfirmationNumber() {

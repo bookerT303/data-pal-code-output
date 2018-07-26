@@ -3,9 +3,11 @@ bootRepackage {
 }
 
 dependencies {
-    compile "org.springframework.boot:spring-boot-starter-data-jpa"
+    compile "org.springframework.data:spring-data-commons"
+    compile "org.hibernate.javax.persistence:hibernate-jpa-2.1-api"
 
+    testCompile "org.springframework.boot:spring-boot-starter-data-jpa"
     testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
 
-    runtime "com.h2database:h2"
+    testRuntime "com.h2database:h2"
 }

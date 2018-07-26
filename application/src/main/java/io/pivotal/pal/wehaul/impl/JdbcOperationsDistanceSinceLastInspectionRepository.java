@@ -1,12 +1,14 @@
-package io.pivotal.pal.wehaul.fleet.domain;
+package io.pivotal.pal.wehaul.impl;
 
+import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspection;
+import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspectionRepository;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 
 @Repository
-public class TruckSinceInspectionRepository {
+public class JdbcOperationsDistanceSinceLastInspectionRepository implements DistanceSinceLastInspectionRepository {
 
     private static final String FIND_ALL =
             "SELECT ti.truck_vin, t.odometer_reading - MAX(ti.odometer_reading) " +
@@ -16,15 +18,16 @@ public class TruckSinceInspectionRepository {
 
     private final JdbcOperations jdbcOperations;
 
-    public TruckSinceInspectionRepository(JdbcOperations jdbcOperations) {
+    public JdbcOperationsDistanceSinceLastInspectionRepository(JdbcOperations jdbcOperations) {
         this.jdbcOperations = jdbcOperations;
     }
 
-    public Collection<TruckSinceInspection> findAllTruckSinceInspections() {
+    @Override
+    public Collection<DistanceSinceLastInspection> findAllDistanceSinceLastInspections() {
 
         return jdbcOperations.query(
                 FIND_ALL,
-                (rs, rowNum) -> new TruckSinceInspection(
+                (rs, rowNum) -> new DistanceSinceLastInspection(
                         rs.getString(1),
                         rs.getInt(2)
                 )

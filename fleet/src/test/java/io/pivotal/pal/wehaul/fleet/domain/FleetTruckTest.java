@@ -1,31 +1,35 @@
 package io.pivotal.pal.wehaul.fleet.domain;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class FleetTruckTest {
 
-    @Test
-    public void buyTruck() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+    @Mock
+    private TruckInfoLookupClient mockTruckInfoLookupClient;
 
-        assertThat(truck.getVin()).isEqualTo("test-0001");
-        assertThat(truck.getStatus()).isEqualTo(FleetTruckStatus.IN_INSPECTION);
-        assertThat(truck.getOdometerReading()).isEqualTo(100);
-    }
+    private FleetTruck.Factory fleetTruckFactory;
 
-    @Test
-    public void buyTruck_negativeOdometer() {
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> FleetTruck.buyTruck("test-0001", -1))
-                .withMessage("Cannot buy a truck with negative odometer reading");
+    @Before
+    public void setUp() {
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        when(mockTruckInfoLookupClient.getMakeModelByVin(any())).thenReturn(makeModel);
+        fleetTruckFactory = new FleetTruck.Factory(mockTruckInfoLookupClient);
     }
 
     @Test
     public void returnFromInspection() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
 
         truck.returnFromInspection(100);
 
@@ -35,7 +39,8 @@ public class FleetTruckTest {
 
     @Test
     public void sendForInspection() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
         truck.returnFromInspection(100);
 
         truck.sendForInspection();
@@ -45,7 +50,8 @@ public class FleetTruckTest {
 
     @Test
     public void removeFromYard() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
         truck.returnFromInspection(100);
 
         truck.removeFromYard();
@@ -55,7 +61,8 @@ public class FleetTruckTest {
 
     @Test
     public void returnToYard() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
         truck.returnFromInspection(100);
         truck.removeFromYard();
 
@@ -67,7 +74,8 @@ public class FleetTruckTest {
 
     @Test
     public void returnFromInspection_whenNotInInspection() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
         truck.returnFromInspection(100);
 
         assertThatExceptionOfType(IllegalStateException.class)
@@ -77,7 +85,8 @@ public class FleetTruckTest {
 
     @Test
     public void returnFromInspection_withLowerOdometerReading() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> truck.returnFromInspection(99))
@@ -86,7 +95,8 @@ public class FleetTruckTest {
 
     @Test
     public void sendForInspection_whenAnythingButInspectable() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
 
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> truck.sendForInspection())
@@ -95,7 +105,8 @@ public class FleetTruckTest {
 
     @Test
     public void removeFromYard_whenAnythingButInspectable() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
 
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> truck.removeFromYard())
@@ -104,7 +115,8 @@ public class FleetTruckTest {
 
     @Test
     public void returnToYard_whenAnythingButNotInspectable() {
-        FleetTruck truck = FleetTruck.buyTruck("test-0001", 100);
+        String vin = "test-0001";
+        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
 
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> truck.returnToYard(200))
