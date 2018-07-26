@@ -29,11 +29,22 @@ public class FleetTruck extends AbstractAggregateRoot {
 
     public FleetTruck(List<FleetTruckEvent> events) {
         events.forEach(event -> this.handleEvent(event));
+        this.clearDomainEvents();
     }
 
     private void handleEvent(FleetTruckEvent event) {
         if (event instanceof FleetTruckPurchased) {
             handlePurchased((FleetTruckPurchased) event);
+        } else if (event instanceof FleetTruckRemovedFromYard) {
+            handleRemovedFromYard((FleetTruckRemovedFromYard) event);
+        } else if (event instanceof FleetTruckReturnedFromInspection) {
+            handleReturnedFromInspection((FleetTruckReturnedFromInspection) event);
+        } else if (event instanceof FleetTruckReturnedToYard) {
+            handleReturnedToYard((FleetTruckReturnedToYard) event);
+        } else if (event instanceof FleetTruckSentForInspection) {
+            handleSentForInspection((FleetTruckSentForInspection) event);
+        } else {
+            throw new IllegalArgumentException();
         }
     }
 
@@ -65,18 +76,23 @@ public class FleetTruck extends AbstractAggregateRoot {
             throw new IllegalArgumentException("Odometer reading cannot be less than previous reading");
         }
 
-        this.status = FleetTruckStatus.INSPECTABLE;
-        this.odometerReading = odometerReading;
-
-        TruckInspection inspection =
-                TruckInspection.createTruckInspection(vin, odometerReading, notes);
-        this.inspections.add(inspection);
-
         FleetTruckReturnedFromInspection event = new FleetTruckReturnedFromInspection(
                 this.getVin(),
                 odometerReading,
                 notes
         );
+
+        this.handleReturnedFromInspection(event);
+    }
+
+    private void handleReturnedFromInspection(FleetTruckReturnedFromInspection event) {
+        this.status = FleetTruckStatus.INSPECTABLE;
+        this.odometerReading = event.getOdometerReading();
+
+        TruckInspection inspection =
+                TruckInspection.createTruckInspection(vin, odometerReading, event.getNotes());
+        this.inspections.add(inspection);
+
         this.registerEvent(event);
     }
 
@@ -85,9 +101,13 @@ public class FleetTruck extends AbstractAggregateRoot {
             throw new IllegalStateException("Truck cannot be inspected");
         }
 
-        this.status = FleetTruckStatus.IN_INSPECTION;
+        FleetTruckSentForInspection event = new FleetTruckSentForInspection(this.getVin());
+        this.handleSentForInspection(event);
+    }
 
-        this.registerEvent(new FleetTruckSentForInspection(vin));
+    private void handleSentForInspection(FleetTruckSentForInspection event) {
+        this.status = FleetTruckStatus.IN_INSPECTION;
+        this.registerEvent(event);
     }
 
     public void removeFromYard() {
@@ -95,9 +115,12 @@ public class FleetTruck extends AbstractAggregateRoot {
             throw new IllegalStateException("Cannot prevent truck inspection");
         }
 
-        this.status = FleetTruckStatus.NOT_INSPECTABLE;
-
         FleetTruckRemovedFromYard event = new FleetTruckRemovedFromYard(this.getVin());
+        this.handleRemovedFromYard(event);
+    }
+
+    private void handleRemovedFromYard(FleetTruckRemovedFromYard event) {
+        this.status = FleetTruckStatus.NOT_INSPECTABLE;
         this.registerEvent(event);
     }
 
@@ -106,10 +129,14 @@ public class FleetTruck extends AbstractAggregateRoot {
             throw new IllegalStateException("Cannot allow truck inspection");
         }
 
-        this.status = FleetTruckStatus.INSPECTABLE;
-        this.odometerReading += distanceTraveled;
-
         FleetTruckReturnedToYard event = new FleetTruckReturnedToYard(this.getVin(), distanceTraveled);
+        this.handleReturnedToYard(event);
+    }
+
+    private void handleReturnedToYard(FleetTruckReturnedToYard event) {
+        this.status = FleetTruckStatus.INSPECTABLE;
+        this.odometerReading += event.getDistanceTraveled();
+
         this.registerEvent(event);
     }
 
