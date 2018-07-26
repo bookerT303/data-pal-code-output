@@ -6,6 +6,8 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.UUID;
 
+import static org.springframework.util.StringUtils.isEmpty;
+
 @Entity
 @Table
 public class TruckInspection {
@@ -28,6 +30,10 @@ public class TruckInspection {
     }
 
     public static TruckInspection createTruckInspection(String truckVin, int odometerReading, String notes) {
+        if (odometerReading > 100_000 && isEmpty(notes)) {
+            throw new IllegalStateException("Inspection notes are required on high mileage trucks");
+        }
+
         TruckInspection entry = new TruckInspection();
         entry.id = UUID.randomUUID();
         entry.truckVin = truckVin;

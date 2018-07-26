@@ -4,27 +4,28 @@ import io.pivotal.pal.wehaul.rental.domain.*;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 public class RentalService {
 
-    private final RentalRepository rentalRepository;
     private final RentalTruckRepository rentalTruckRepository;
+    private final RentalRepository rentalRepository;
     private final RentalTruck.Factory rentalTruckFactory;
 
-    public RentalService(RentalRepository rentalRepository,
-                         RentalTruckRepository rentalTruckRepository,
+    public RentalService(RentalTruckRepository rentalTruckRepository,
+                         RentalRepository rentalRepository,
                          RentalTruck.Factory rentalTruckFactory) {
-        this.rentalRepository = rentalRepository;
         this.rentalTruckRepository = rentalTruckRepository;
+        this.rentalRepository = rentalRepository;
         this.rentalTruckFactory = rentalTruckFactory;
     }
 
     @Transactional
-    public Rental createRental(String customerName) {
+    public RentalTruck createRental(String customerName) {
         RentalTruck truck = rentalTruckRepository.findTop1ByStatus(RentalTruckStatus.RENTABLE);
         if (truck == null) {
             throw new IllegalStateException("No trucks available to rent");
@@ -33,58 +34,51 @@ public class RentalService {
         truck.reserve();
         rentalTruckRepository.save(truck);
 
-        Rental rental = Rental.createRental(customerName, truck.getVin());
-        return rentalRepository.save(rental);
+        Rental rental = new Rental(customerName, truck.getVin());
+        rentalRepository.save(rental);
+
+        return truck;
     }
 
-    @Transactional
     public void pickUp(UUID confirmationNumber) {
-        Rental rental = rentalRepository.findOne(confirmationNumber);
-        if (rental == null) {
+        RentalTruck rentalTruck = rentalTruckRepository.findOneByRentalConfirmationNumber(confirmationNumber);
+        if (rentalTruck == null) {
             throw new IllegalArgumentException(String.format("No rental found for id=%s", confirmationNumber));
         }
 
-        rental.pickUp();
-        rentalRepository.save(rental);
+        rentalTruck.pickUp();
 
-        RentalTruck truck = rentalTruckRepository.findOne(rental.getTruckVin());
-        truck.pickUp();
-        rentalTruckRepository.save(truck);
+        rentalTruckRepository.save(rentalTruck);
     }
 
     @Transactional
-    public Rental dropOff(UUID rentalId, int distanceTraveled) {
-        Rental rental = rentalRepository.findOne(rentalId);
-        if (rental == null) {
-            throw new IllegalArgumentException(String.format("No rental found for id=%s", rentalId));
+    public RentalTruck dropOff(UUID confirmationNumber) {
+        RentalTruck rentalTruck = rentalTruckRepository.findOneByRentalConfirmationNumber(confirmationNumber);
+        if (rentalTruck == null) {
+            throw new IllegalArgumentException(String.format("No rental found for id=%s", confirmationNumber));
         }
 
-        rental.dropOff(distanceTraveled);
-        rentalRepository.save(rental);
+        rentalTruck.dropOff();
+        rentalTruckRepository.save(rentalTruck);
 
-        String vin = rental.getTruckVin();
-        RentalTruck truck = rentalTruckRepository.findOne(vin);
-        truck.dropOff();
-        rentalTruckRepository.save(truck);
+        rentalRepository.delete(confirmationNumber);
 
-        return rental;
+        return rentalTruck;
     }
 
     public Collection<Rental> findAll() {
-        Collection<Rental> rentals = new ArrayList<>();
-        rentalRepository.findAll().forEach(rentals::add);
-        return rentals;
+
+        return StreamSupport
+            .stream(rentalRepository.findAll().spliterator(), false)
+            .collect(Collectors.toList());
     }
 
-    public void addTruck(String vin, String make, String model) {
+    public void createRentableTruck(String vin, String make, String model) {
         RentalTruck truck = rentalTruckFactory.createRentableTruck(vin, make, model);
-
-        truck.preventRenting();
-
         rentalTruckRepository.save(truck);
     }
 
-    public void preventRenting(String vin) {
+    public void removeRentableTruck(String vin) {
         RentalTruck truck = rentalTruckRepository.findOne(vin);
         if (truck == null) {
             throw new IllegalArgumentException(String.format("No truck found with vin=%s", vin));
@@ -94,7 +88,7 @@ public class RentalService {
         rentalTruckRepository.save(truck);
     }
 
-    public void allowRenting(String vin) {
+    public void addRentableTruck(String vin) {
         RentalTruck truck = rentalTruckRepository.findOne(vin);
         if (truck == null) {
             throw new IllegalArgumentException(String.format("No truck found with vin=%s", vin));

@@ -6,10 +6,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.UUID;
 
@@ -18,48 +16,47 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
-@DirtiesContext
 @RunWith(MockitoJUnitRunner.class)
 public class RentalServiceTest {
 
     @Mock
-    private RentalRepository mockRentalRepository;
-    @Mock
     private RentalTruckRepository mockTruckRepository;
     @Mock
-    private RentalTruck.Factory mockTruckFactory;
-    @Captor
-    private ArgumentCaptor<Rental> rentalCaptor;
+    private TruckSizeLookupClient mockTruckSizeLookupClient;
     @Captor
     private ArgumentCaptor<RentalTruck> truckCaptor;
 
+    private RentalTruck.Factory rentalTruckFactory;
     private RentalService rentalService;
 
     @Before
     public void setUp() {
-        rentalService = new RentalService(mockRentalRepository, mockTruckRepository, mockTruckFactory);
+        rentalTruckFactory = new RentalTruck.Factory(mockTruckSizeLookupClient);
+        rentalService = new RentalService(
+                mockTruckRepository,
+                rentalTruckFactory
+        );
     }
 
     @Test
     public void createRental() {
-        RentalTruck mockTruck = mock(RentalTruck.class);
-        when(mockTruck.getVin()).thenReturn("some-vin");
-        when(mockTruckRepository.findTop1ByStatus(any())).thenReturn(mockTruck);
+        RentalTruck truck = rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+        when(mockTruckRepository.findTop1ByStatus(any())).thenReturn(truck);
+        String customerName = "some-customer-name";
 
-        rentalService.createRental("some-customer-name");
 
-        InOrder inOrder = inOrder(mockTruck, mockTruckRepository, mockRentalRepository);
-        inOrder.verify(mockTruckRepository).findTop1ByStatus(RentalTruckStatus.RENTABLE);
-        inOrder.verify(mockTruck).reserve();
-        inOrder.verify(mockTruckRepository).save(truckCaptor.capture());
-        inOrder.verify(mockRentalRepository).save(rentalCaptor.capture());
+        rentalService.createRental(customerName);
+
+
+        verify(mockTruckRepository).findTop1ByStatus(RentalTruckStatus.RENTABLE);
+        verify(mockTruckRepository).save(truckCaptor.capture());
 
         RentalTruck savedTruck = truckCaptor.getValue();
-        assertThat(savedTruck).isSameAs(mockTruck);
+        assertThat(savedTruck.getStatus()).isEqualTo(RentalTruckStatus.RESERVED);
 
-        Rental savedRental = rentalCaptor.getValue();
-        assertThat(savedRental.getCustomerName()).isEqualTo("some-customer-name");
-        assertThat(savedRental.getTruckVin()).isEqualTo("some-vin");
+        Rental savedRental = truckCaptor.getValue().getRental();
+        assertThat(savedRental.getConfirmationNumber()).isNotNull();
+        assertThat(savedRental.getTruckVin()).isEqualTo(truck.getVin());
     }
 
     @Test
@@ -72,152 +69,128 @@ public class RentalServiceTest {
 
         verify(mockTruckRepository).findTop1ByStatus(RentalTruckStatus.RENTABLE);
         verifyNoMoreInteractions(mockTruckRepository);
-
-        verifyZeroInteractions(mockRentalRepository);
     }
 
     @Test
     public void pickUp() {
-        RentalTruck mockTruck = mock(RentalTruck.class);
-        when(mockTruckRepository.findOne(any())).thenReturn(mockTruck);
+        RentalTruck truck = rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+        String customerName = "some-customer-name";
+        truck.reserve(customerName);
+        when(mockTruckRepository.findOneByRentalConfirmationNumber(any())).thenReturn(truck);
 
-        Rental mockRental = mock(Rental.class);
-        when(mockRentalRepository.findOne(any())).thenReturn(mockRental);
 
-        rentalService.pickUp(mockRental.getConfirmationNumber());
+        Rental rental = truck.getRental();
+        rentalService.pickUp(rental.getConfirmationNumber());
 
-        InOrder inOrder = inOrder(mockRental, mockRentalRepository, mockTruck, mockTruckRepository);
-        inOrder.verify(mockRentalRepository).findOne(mockRental.getConfirmationNumber());
-        inOrder.verify(mockRental).pickUp();
-        inOrder.verify(mockRentalRepository).save(mockRental);
 
-        inOrder.verify(mockTruckRepository).findOne(mockTruck.getVin());
-        inOrder.verify(mockTruck).pickUp();
-        inOrder.verify(mockTruckRepository).save(mockTruck);
+        verify(mockTruckRepository).findOneByRentalConfirmationNumber(rental.getConfirmationNumber());
+        verify(mockTruckRepository).save(truck);
     }
 
     @Test
     public void pickUp_whenNoRentalFound() {
-        when(mockRentalRepository.findOne(any())).thenReturn(null);
+        when(mockTruckRepository.findOneByRentalConfirmationNumber(any())).thenReturn(null);
 
-        UUID rentalId = UUID.randomUUID();
+        UUID confirmationNumber = UUID.randomUUID();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> rentalService.pickUp(rentalId))
-                .withMessage(String.format("No rental found for id=%s", rentalId));
+                .isThrownBy(() -> rentalService.pickUp(confirmationNumber))
+                .withMessage(String.format("No rental found for id=%s", confirmationNumber));
 
-        verify(mockRentalRepository).findOne(rentalId);
-        verifyNoMoreInteractions(mockRentalRepository);
+        verify(mockTruckRepository).findOneByRentalConfirmationNumber(confirmationNumber);
+        verifyNoMoreInteractions(mockTruckRepository);
     }
 
     @Test
     public void dropOff() {
-        Rental mockRental = mock(Rental.class);
-        when(mockRentalRepository.findOne(any())).thenReturn(mockRental);
-
-        RentalTruck mockTruck = mock(RentalTruck.class);
-        when(mockTruckRepository.findOne(any())).thenReturn(mockTruck);
-
-        UUID confirmationNumber = UUID.randomUUID();
-        int distanceTraveled = 500;
-        rentalService.dropOff(confirmationNumber, distanceTraveled);
+        RentalTruck truck = rentalTruckFactory.createRentableTruck("test-0001", "some-make", "some-model");
+        String customerName = "some-customer-name";
+        truck.reserve(customerName);
+        truck.pickUp();
+        when(mockTruckRepository.findOneByRentalConfirmationNumber(any())).thenReturn(truck);
 
 
-        InOrder inOrder = inOrder(mockRental, mockRentalRepository, mockTruck, mockTruckRepository);
-        inOrder.verify(mockRentalRepository).findOne(confirmationNumber);
-        inOrder.verify(mockRental).dropOff(distanceTraveled);
-        inOrder.verify(mockRentalRepository).save(rentalCaptor.capture());
-        Rental savedRental = rentalCaptor.getValue();
-        assertThat(savedRental).isSameAs(mockRental);
+        rentalService.dropOff(truck.getRental().getConfirmationNumber());
 
-        inOrder.verify(mockTruckRepository).findOne(any());
-        inOrder.verify(mockTruck).dropOff();
-        inOrder.verify(mockTruckRepository).save(truckCaptor.capture());
-        RentalTruck savedTruck = truckCaptor.getValue();
-        assertThat(savedTruck).isSameAs(mockTruck);
+
+        verify(mockTruckRepository).save(truckCaptor.capture());
     }
 
     @Test
     public void dropOff_whenNoRentalFound() {
-        when(mockRentalRepository.findOne(any())).thenReturn(null);
+        when(mockTruckRepository.findOneByRentalConfirmationNumber(any())).thenReturn(null);
 
-        UUID rentalId = UUID.randomUUID();
+
+        UUID confirmationNumber = UUID.randomUUID();
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> rentalService.dropOff(rentalId, 0))
-                .withMessage(String.format("No rental found for id=%s", rentalId));
+                .isThrownBy(() -> rentalService.dropOff(confirmationNumber))
+                .withMessage(String.format("No rental found for id=%s", confirmationNumber));
 
-        verify(mockRentalRepository).findOne(rentalId);
-        verifyNoMoreInteractions(mockRentalRepository);
-        verifyZeroInteractions(mockTruckRepository);
+
+        verify(mockTruckRepository).findOneByRentalConfirmationNumber(confirmationNumber);
+        verifyNoMoreInteractions(mockTruckRepository);
     }
 
     @Test
-    public void addTruck() {
-        RentalTruck mockTruck = mock(RentalTruck.class);
+    public void createRentableTruck() {
+        when(mockTruckSizeLookupClient.getSizeByMakeModel(any(), any())).thenReturn(RentalTruckSize.LARGE);
 
-        when(mockTruckFactory.createRentableTruck(any(), any(), any()))
-                .thenReturn(mockTruck);
+        rentalService.createRentableTruck("cool-vin", "make", "model");
 
-        String vin = "cool-vin";
-        String make = "make";
-        String model = "model";
-        rentalService.addTruck(vin, make, model);
+        verify(mockTruckRepository).save(truckCaptor.capture());
+        assertThat(truckCaptor.getValue()).isNotNull();
+        assertThat(truckCaptor.getValue().getVin()).isEqualToIgnoringCase("cool-vin");
+        assertThat(truckCaptor.getValue().getSize()).isEqualTo(RentalTruckSize.LARGE);
 
-        verify(mockTruckFactory).createRentableTruck(vin, make, model);
-        verify(mockTruck).preventRenting();
-        verify(mockTruckRepository).save(mockTruck);
+        verify(mockTruckSizeLookupClient).getSizeByMakeModel("make", "model");
     }
 
     @Test
-    public void preventRenting() {
-        String vin = "best-vin";
-
+    public void removeRentableTruck() {
         RentalTruck mockTruck = mock(RentalTruck.class);
-        when(mockTruck.getVin()).thenReturn(vin);
+        when(mockTruck.getVin()).thenReturn("best-vin");
 
         when(mockTruckRepository.findOne(any())).thenReturn(mockTruck);
 
 
-        rentalService.preventRenting(vin);
+        rentalService.removeRentableTruck("best-vin");
 
 
-        verify(mockTruckRepository).findOne(vin);
+        verify(mockTruckRepository).findOne("best-vin");
         verify(mockTruck).preventRenting();
         verify(mockTruckRepository).save(mockTruck);
     }
 
     @Test
-    public void preventRenting_whenTruckNotFound() {
+    public void removeRentableTruck_whenTruckNotFound() {
         when(mockTruckRepository.findOne(any())).thenReturn(null);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> rentalService.preventRenting("vin"))
+                .isThrownBy(() -> rentalService.removeRentableTruck("vin"))
                 .withMessage("No truck found with vin=vin");
     }
 
     @Test
-    public void allowRenting() {
-        String vin = "best-vin";
-
+    public void addRentableTruck() {
         RentalTruck mockTruck = mock(RentalTruck.class);
-        when(mockTruck.getVin()).thenReturn(vin);
+        when(mockTruck.getVin()).thenReturn("best-vin");
 
         when(mockTruckRepository.findOne(any())).thenReturn(mockTruck);
 
 
-        rentalService.allowRenting(vin);
+        rentalService.addRentableTruck("best-vin");
 
 
-        verify(mockTruckRepository).findOne(vin);
+        verify(mockTruckRepository).findOne("best-vin");
         verify(mockTruck).allowRenting();
         verify(mockTruckRepository).save(mockTruck);
     }
 
     @Test
-    public void allowRenting_whenTruckNotFound() {
+    public void addRentableTruck_whenTruckNotFound() {
         when(mockTruckRepository.findOne(any())).thenReturn(null);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> rentalService.allowRenting("vin"))
+                .isThrownBy(() -> rentalService.addRentableTruck("vin"))
                 .withMessage("No truck found with vin=vin");
     }
 }

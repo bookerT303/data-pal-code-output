@@ -3,9 +3,15 @@ bootRepackage {
 }
 
 dependencies {
+    compile "org.springframework:spring-context"
     compile "org.springframework.data:spring-data-commons"
     compile "org.hibernate.javax.persistence:hibernate-jpa-2.1-api"
+    compile "org.slf4j:slf4j-api"
+
+    runtime "ch.qos.logback:logback-classic"
 
     testCompile "org.springframework.boot:spring-boot-starter-data-jpa"
-    testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
+    testCompile "org.springframework.boot:spring-boot-starter-test"
+
+    testRuntime "com.h2database:h2"
 }

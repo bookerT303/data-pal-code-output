@@ -1,5 +1,7 @@
 package io.pivotal.pal.wehaul.fleet.domain;
 
+import org.springframework.stereotype.Component;
+
 import javax.persistence.*;
 
 @Entity
@@ -63,12 +65,24 @@ public class FleetTruck {
         return vin;
     }
 
+    public void setVin(String vin) {
+        this.vin = vin;
+    }
+
     public FleetTruckStatus getStatus() {
         return status;
     }
 
+    public void setStatus(FleetTruckStatus status) {
+        this.status = status;
+    }
+
     public Integer getOdometerReading() {
         return odometerReading;
+    }
+
+    public void setOdometerReading(Integer odometerReading) {
+        this.odometerReading = odometerReading;
     }
 
     public MakeModel getMakeModel() {
@@ -85,6 +99,7 @@ public class FleetTruck {
                 '}';
     }
 
+    @Component
     public static class Factory {
 
         private final TruckInfoLookupClient truckInfoLookupClient;
@@ -97,13 +112,13 @@ public class FleetTruck {
             if (odometerReading < 0) {
                 throw new IllegalArgumentException("Cannot buy a truck with negative odometer reading");
             }
-            FleetTruck fleetTruck = new FleetTruck();
-            fleetTruck.vin = vin;
-            fleetTruck.status = FleetTruckStatus.IN_INSPECTION;
-            fleetTruck.odometerReading = odometerReading;
-            fleetTruck.makeModel = truckInfoLookupClient.getMakeModelByVin(vin);
+            FleetTruck truck = new FleetTruck();
+            truck.vin = vin;
+            truck.status = FleetTruckStatus.IN_INSPECTION;
+            truck.odometerReading = odometerReading;
+            truck.makeModel = truckInfoLookupClient.getMakeModelByVin(vin);
 
-            return fleetTruck;
+            return truck;
         }
 
     }

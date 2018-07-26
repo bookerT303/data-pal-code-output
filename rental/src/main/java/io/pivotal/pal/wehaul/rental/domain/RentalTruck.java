@@ -1,5 +1,7 @@
 package io.pivotal.pal.wehaul.rental.domain;
 
+import org.springframework.stereotype.Component;
+
 import javax.persistence.*;
 
 @Entity
@@ -18,7 +20,7 @@ public class RentalTruck {
     @Column
     private RentalTruckSize size;
 
-    public RentalTruck() {
+    RentalTruck() {
         // default constructor
     }
 
@@ -68,10 +70,15 @@ public class RentalTruck {
         return status;
     }
 
+    public void setStatus(RentalTruckStatus status) {
+        this.status = status;
+    }
+
     public RentalTruckSize getSize() {
         return size;
     }
 
+    @Component
     public static class Factory {
 
         private final TruckSizeLookupClient truckSizeLookupClient;
