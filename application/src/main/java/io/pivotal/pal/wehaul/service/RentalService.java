@@ -1,9 +1,13 @@
 package io.pivotal.pal.wehaul.service;
 
-import io.pivotal.pal.wehaul.domain.*;
+import io.pivotal.pal.wehaul.domain.Rental;
+import io.pivotal.pal.wehaul.domain.Truck;
+import io.pivotal.pal.wehaul.domain.TruckStatus;
+import io.pivotal.pal.wehaul.repository.RentalRepository;
+import io.pivotal.pal.wehaul.repository.TruckRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;

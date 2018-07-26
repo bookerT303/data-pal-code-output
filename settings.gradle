@@ -1,4 +1,5 @@
 rootProject.name = "wehaul"
 
 include "application"
-include "domain"
+include "fleet"
+include "rental"

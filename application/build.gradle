@@ -1,8 +1,7 @@
 dependencies {
     compile "org.springframework.boot:spring-boot-starter-web"
-    compile "org.springframework.boot:spring-boot-starter-data-jpa"
-    compile project(":domain")
-    runtime "com.h2database:h2"
+    compile project(":fleet")
+    compile project(":rental")
 
     testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
 }

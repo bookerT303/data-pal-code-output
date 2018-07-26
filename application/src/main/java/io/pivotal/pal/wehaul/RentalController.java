@@ -1,9 +1,10 @@
-package io.pivotal.pal.wehaul.controller;
+package io.pivotal.pal.wehaul;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.pivotal.pal.wehaul.domain.Rental;
-import io.pivotal.pal.wehaul.service.RentalService;
+import io.pivotal.pal.wehaul.fleet.service.FleetTruckService;
+import io.pivotal.pal.wehaul.rental.domain.Rental;
+import io.pivotal.pal.wehaul.rental.service.RentalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,35 +15,30 @@ import java.util.UUID;
 public class RentalController {
 
     private final RentalService rentalService;
+    private final FleetTruckService fleetTruckService;
 
-    public RentalController(RentalService rentalService) {
+    public RentalController(RentalService rentalService, FleetTruckService fleetTruckService) {
         this.rentalService = rentalService;
+        this.fleetTruckService = fleetTruckService;
     }
 
     @PostMapping("/rentals")
     public ResponseEntity<Void> createRental(@RequestBody CreateRentalDto createRentalDto) {
-
-        String customerName = createRentalDto.getCustomerName();
-        rentalService.createRental(customerName);
-
-        return ResponseEntity.ok().build();
+        // TODO: implement me using tests and previous implementation as guides
+        return null;
     }
 
     @PostMapping("/rentals/{rentalId}/pick-up")
     public ResponseEntity<Void> pickUpRental(@PathVariable UUID rentalId) {
-
-        rentalService.pickUp(rentalId);
-        return ResponseEntity.ok().build();
+        // TODO: implement me using tests and previous implementation as guides
+        return null;
     }
 
     @PostMapping("/rentals/{rentalId}/drop-off")
     public ResponseEntity<Void> dropOffRental(@PathVariable UUID rentalId,
                                               @RequestBody DropOffRentalDto dropOffRentalDto) {
-
-        int distanceTraveled = dropOffRentalDto.getDistanceTraveled();
-        rentalService.dropOff(rentalId, distanceTraveled);
-
-        return ResponseEntity.ok().build();
+        // TODO: implement me using tests and previous implementation as guides
+        return null;
     }
 
     @GetMapping("/rentals")
@@ -51,7 +47,7 @@ public class RentalController {
         return ResponseEntity.ok(rentals);
     }
 
-    private static class DropOffRentalDto {
+    static class DropOffRentalDto {
 
         private final int distanceTraveled;
 
@@ -67,12 +63,12 @@ public class RentalController {
         @Override
         public String toString() {
             return "DropOffRentalDto{" +
-                "distanceTraveled=" + distanceTraveled +
-                '}';
+                    "distanceTraveled=" + distanceTraveled +
+                    '}';
         }
     }
 
-    private static class CreateRentalDto {
+    static class CreateRentalDto {
 
         private final String customerName;
 
@@ -88,8 +84,8 @@ public class RentalController {
         @Override
         public String toString() {
             return "CreateRentalDto{" +
-                "customerName='" + customerName + '\'' +
-                '}';
+                    "customerName='" + customerName + '\'' +
+                    '}';
         }
     }
 }
