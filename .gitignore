@@ -29,3 +29,8 @@
 ### Postman ###
 .DS_Store
 postman/.DS_Store
+
+### Other ###
+
+*/build
+*/out

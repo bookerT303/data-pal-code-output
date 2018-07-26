@@ -1,1 +1,4 @@
-rootProject.name = 'wehaul'
+rootProject.name = "wehaul"
+
+include "application"
+include "domain"
