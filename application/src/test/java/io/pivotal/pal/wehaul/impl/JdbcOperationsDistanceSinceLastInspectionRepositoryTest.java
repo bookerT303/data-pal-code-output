@@ -40,14 +40,14 @@ public class JdbcOperationsDistanceSinceLastInspectionRepositoryTest {
         entityManager.persistAndFlush(truck);
 
         Collection<DistanceSinceLastInspection> distanceSinceLastInspections =
-                distanceSinceLastInspectionRepository.findAll();
+                distanceSinceLastInspectionRepository.findAllDistanceSinceLastInspections();
 
         assertThat(distanceSinceLastInspections)
                 .hasSize(1)
                 .extracting(DistanceSinceLastInspection::getTruckVin)
                 .containsExactly(vin);
         assertThat(distanceSinceLastInspections)
-                .extracting(DistanceSinceLastInspection::getDistanceSinceLastInspection)
+                .extracting(DistanceSinceLastInspection::getLastInspectionDistance)
                 .containsExactly(2000);
     }
 }

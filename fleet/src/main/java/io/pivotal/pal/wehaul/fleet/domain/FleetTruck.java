@@ -1,8 +1,10 @@
 package io.pivotal.pal.wehaul.fleet.domain;
 
-import org.springframework.stereotype.Component;
-
 import javax.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import static javax.persistence.CascadeType.ALL;
 
 @Entity
 @Table(name = "fleet_truck")
@@ -21,11 +23,15 @@ public class FleetTruck {
     @Embedded
     private MakeModel makeModel;
 
+    @OneToMany(fetch = FetchType.EAGER, cascade = ALL)
+    @JoinColumn(name = "truckVin", referencedColumnName = "vin")
+    private List<TruckInspection> inspections = new ArrayList<>();
+
     FleetTruck() {
         // default constructor
     }
 
-    public void returnFromInspection(int odometerReading) {
+    public void returnFromInspection(String notes, int odometerReading) {
         if (status != FleetTruckStatus.IN_INSPECTION) {
             throw new IllegalStateException("Truck is not currently in inspection");
         }
@@ -35,6 +41,10 @@ public class FleetTruck {
 
         this.status = FleetTruckStatus.INSPECTABLE;
         this.odometerReading = odometerReading;
+
+        TruckInspection inspection =
+                TruckInspection.createTruckInspection(vin, odometerReading, notes);
+        this.inspections.add(inspection);
     }
 
     public void sendForInspection() {
@@ -65,28 +75,20 @@ public class FleetTruck {
         return vin;
     }
 
-    public void setVin(String vin) {
-        this.vin = vin;
-    }
-
     public FleetTruckStatus getStatus() {
         return status;
-    }
-
-    public void setStatus(FleetTruckStatus status) {
-        this.status = status;
     }
 
     public Integer getOdometerReading() {
         return odometerReading;
     }
 
-    public void setOdometerReading(Integer odometerReading) {
-        this.odometerReading = odometerReading;
-    }
-
     public MakeModel getMakeModel() {
         return makeModel;
+    }
+
+    public List<TruckInspection> getInspections() {
+        return inspections;
     }
 
     @Override
@@ -96,10 +98,10 @@ public class FleetTruck {
                 ", status=" + status +
                 ", odometerReading=" + odometerReading +
                 ", makeModel=" + makeModel +
+                ", inspections=" + inspections +
                 '}';
     }
 
-    @Component
     public static class Factory {
 
         private final TruckInfoLookupClient truckInfoLookupClient;
@@ -112,13 +114,13 @@ public class FleetTruck {
             if (odometerReading < 0) {
                 throw new IllegalArgumentException("Cannot buy a truck with negative odometer reading");
             }
-            FleetTruck truck = new FleetTruck();
-            truck.vin = vin;
-            truck.status = FleetTruckStatus.IN_INSPECTION;
-            truck.odometerReading = odometerReading;
-            truck.makeModel = truckInfoLookupClient.getMakeModelByVin(vin);
+            FleetTruck fleetTruck = new FleetTruck();
+            fleetTruck.vin = vin;
+            fleetTruck.status = FleetTruckStatus.IN_INSPECTION;
+            fleetTruck.odometerReading = odometerReading;
+            fleetTruck.makeModel = truckInfoLookupClient.getMakeModelByVin(vin);
 
-            return truck;
+            return fleetTruck;
         }
 
     }

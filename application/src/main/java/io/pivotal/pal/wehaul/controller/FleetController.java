@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspection;
 import io.pivotal.pal.wehaul.fleet.domain.FleetTruck;
-import io.pivotal.pal.wehaul.service.FleetTruckService;
+import io.pivotal.pal.wehaul.service.FleetService;
 import io.pivotal.pal.wehaul.service.RentalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,45 +12,43 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collection;
 
 @RestController
-@RequestMapping("/fleet/trucks")
-public class FleetTruckController {
+public class FleetController {
 
-    private final FleetTruckService fleetTruckService;
+    private final FleetService fleetService;
     private final RentalService rentalService;
 
-    public FleetTruckController(FleetTruckService fleetTruckService, RentalService rentalService) {
-        this.fleetTruckService = fleetTruckService;
+    public FleetController(FleetService fleetService, RentalService rentalService) {
+        this.fleetService = fleetService;
         this.rentalService = rentalService;
     }
 
-    @GetMapping
-    public ResponseEntity<Collection<FleetTruck>> getAllTrucks() {
-        Collection<FleetTruck> trucks = fleetTruckService.findAll();
-        return ResponseEntity.ok(trucks);
-    }
-
-    @PostMapping
+    @PostMapping("/trucks")
     public ResponseEntity<Void> buyTruck(@RequestBody BuyTruckDto buyTruckDto) {
 
         String vin = buyTruckDto.getVin();
         int odometerReading = buyTruckDto.getOdometerReading();
 
-        FleetTruck fleetTruck = fleetTruckService.buyTruck(vin, odometerReading);
-        rentalService.createRentableTruck(
+        FleetTruck fleetTruck = fleetService.buyTruck(vin, odometerReading);
+        rentalService.addTruck(
                 vin,
                 fleetTruck.getMakeModel().getMake(),
                 fleetTruck.getMakeModel().getModel()
         );
-        rentalService.removeRentableTruck(vin);
 
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{vin}/send-for-inspection")
+    @GetMapping("/trucks")
+    public ResponseEntity<Collection<FleetTruck>> getAllTrucks() {
+        Collection<FleetTruck> trucks = fleetService.findAll();
+        return ResponseEntity.ok(trucks);
+    }
+
+    @PostMapping("/trucks/{vin}/send-for-inspection")
     public ResponseEntity<Void> sendForInspection(@PathVariable String vin) {
 
-        fleetTruckService.sendForInspection(vin);
-        rentalService.removeRentableTruck(vin);
+        fleetService.sendForInspection(vin);
+        rentalService.preventRenting(vin);
 
         return ResponseEntity.ok().build();
     }
@@ -64,15 +62,15 @@ public class FleetTruckController {
         String notes = returnFromInspectionDto.getNotes();
         int odometerReading = returnFromInspectionDto.getOdometerReading();
 
-        fleetTruckService.returnFromInspection(vin, notes, odometerReading);
-        rentalService.addRentableTruck(vin);
+        fleetService.returnFromInspection(vin, notes, odometerReading);
+        rentalService.allowRenting(vin);
 
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/distance-since-last-inspections")
+    @GetMapping("/truck-since-inspections")
     public Collection<DistanceSinceLastInspection> listDistanceSinceLastInspections() {
-        return fleetTruckService.findAllDistanceSinceLastInspections();
+        return fleetService.findAllDistanceSinceLastInspections();
     }
 
     static class ReturnFromInspectionDto {

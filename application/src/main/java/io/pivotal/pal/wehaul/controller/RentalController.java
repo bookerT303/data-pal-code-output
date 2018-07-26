@@ -2,9 +2,9 @@ package io.pivotal.pal.wehaul.controller;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.pivotal.pal.wehaul.service.FleetService;
 import io.pivotal.pal.wehaul.rental.domain.Rental;
 import io.pivotal.pal.wehaul.rental.domain.RentalTruck;
-import io.pivotal.pal.wehaul.service.FleetTruckService;
 import io.pivotal.pal.wehaul.service.RentalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,16 +19,19 @@ import java.util.stream.Collectors;
 public class RentalController {
 
     private final RentalService rentalService;
-    private final FleetTruckService fleetTruckService;
+    private final FleetService fleetService;
 
-    public RentalController(RentalService rentalService, FleetTruckService fleetTruckService) {
+    public RentalController(RentalService rentalService, FleetService fleetService) {
         this.rentalService = rentalService;
-        this.fleetTruckService = fleetTruckService;
+        this.fleetService = fleetService;
     }
 
     @GetMapping
     public ResponseEntity<Collection<Rental>> getAllRentals() {
-        Collection<Rental> rentals = rentalService.findAll();
+        Collection<Rental> rentals = rentalService.findAll().stream()
+                .map(RentalTruck::getRental)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         return ResponseEntity.ok(rentals);
     }
 
@@ -38,8 +41,8 @@ public class RentalController {
         String customerName = createRentalDto.getCustomerName();
         RentalTruck rentalTruck = rentalService.createRental(customerName);
 
-        String vin = rentalTruck.getVin();
-        fleetTruckService.removeFromYard(vin);
+        String truckVin = rentalTruck.getVin();
+        fleetService.removeFromYard(truckVin);
 
         return ResponseEntity.ok().build();
     }
@@ -56,9 +59,9 @@ public class RentalController {
                                               @RequestBody DropOffRentalDto dropOffRentalDto) {
 
         int distanceTraveled = dropOffRentalDto.getDistanceTraveled();
-        RentalTruck rental = rentalService.dropOff(confirmationNumber);
-        String vin = rental.getVin();
-        fleetTruckService.returnToYard(vin, distanceTraveled);
+        RentalTruck rentalTruck = rentalService.dropOff(confirmationNumber);
+        String vin = rentalTruck.getVin();
+        fleetService.returnToYard(vin, distanceTraveled);
 
         return ResponseEntity.ok().build();
     }

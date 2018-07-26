@@ -1,7 +1,5 @@
 package io.pivotal.pal.wehaul.rental.domain;
 
-import org.springframework.stereotype.Component;
-
 import javax.persistence.*;
 
 @Entity
@@ -20,16 +18,21 @@ public class RentalTruck {
     @Column
     private RentalTruckSize size;
 
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinColumn(name = "truckVin")
+    private Rental rental;
+
     RentalTruck() {
         // default constructor
     }
 
-    public void reserve() {
+    public void reserve(String customerName) {
         if (status != RentalTruckStatus.RENTABLE) {
             throw new IllegalStateException("Truck cannot be reserved");
         }
 
         this.status = RentalTruckStatus.RESERVED;
+        this.rental = new Rental(customerName, this.vin);
     }
 
     public void pickUp() {
@@ -46,6 +49,7 @@ public class RentalTruck {
         }
 
         this.status = RentalTruckStatus.RENTABLE;
+        this.rental = null;
     }
 
     public void preventRenting() {
@@ -70,15 +74,14 @@ public class RentalTruck {
         return status;
     }
 
-    public void setStatus(RentalTruckStatus status) {
-        this.status = status;
-    }
-
     public RentalTruckSize getSize() {
         return size;
     }
 
-    @Component
+    public Rental getRental() {
+        return rental;
+    }
+
     public static class Factory {
 
         private final TruckSizeLookupClient truckSizeLookupClient;

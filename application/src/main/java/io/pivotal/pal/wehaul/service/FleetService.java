@@ -1,40 +1,39 @@
 package io.pivotal.pal.wehaul.service;
 
-import io.pivotal.pal.wehaul.fleet.domain.*;
+import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspection;
+import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspectionRepository;
+import io.pivotal.pal.wehaul.fleet.domain.FleetTruck;
+import io.pivotal.pal.wehaul.fleet.domain.FleetTruckRepository;
 import org.springframework.stereotype.Service;
 
-import javax.transaction.Transactional;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Service
-public class FleetTruckService {
+public class FleetService {
 
     private final FleetTruckRepository fleetTruckRepository;
-    private final TruckInspectionRepository truckInspectionRepository;
     private final DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository;
     private final FleetTruck.Factory fleetTruckFactory;
 
-    public FleetTruckService(FleetTruckRepository fleetTruckRepository,
-                             TruckInspectionRepository truckInspectionRepository,
-                             DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository,
-                             FleetTruck.Factory fleetTruckFactory) {
-        this.fleetTruckRepository = fleetTruckRepository;
-        this.truckInspectionRepository = truckInspectionRepository;
-        this.distanceSinceLastInspectionRepository = distanceSinceLastInspectionRepository;
+    public FleetService(
+            FleetTruck.Factory fleetTruckFactory,
+            FleetTruckRepository fleetTruckRepository,
+            DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository
+    ) {
         this.fleetTruckFactory = fleetTruckFactory;
+        this.fleetTruckRepository = fleetTruckRepository;
+        this.distanceSinceLastInspectionRepository = distanceSinceLastInspectionRepository;
     }
 
     public FleetTruck buyTruck(String vin, int odometerReading) {
         FleetTruck truck = fleetTruckFactory.buyTruck(vin, odometerReading);
 
         fleetTruckRepository.save(truck);
-
         return truck;
     }
 
-    @Transactional
     public void returnFromInspection(String vin, String notes, int odometerReading) {
         FleetTruck truck = fleetTruckRepository.findOne(vin);
 
@@ -42,12 +41,8 @@ public class FleetTruckService {
             throw new IllegalArgumentException(String.format("No truck found with VIN=%s", vin));
         }
 
-        truck.returnFromInspection(odometerReading);
+        truck.returnFromInspection(notes, odometerReading);
         fleetTruckRepository.save(truck);
-
-        TruckInspection truckInspection =
-                TruckInspection.createTruckInspection(vin, odometerReading, notes);
-        truckInspectionRepository.save(truckInspection);
     }
 
     public void sendForInspection(String vin) {
@@ -87,7 +82,7 @@ public class FleetTruckService {
     }
 
     public Collection<DistanceSinceLastInspection> findAllDistanceSinceLastInspections() {
-        return distanceSinceLastInspectionRepository.findAll();
+        return distanceSinceLastInspectionRepository.findAllDistanceSinceLastInspections();
     }
 
     public Collection<FleetTruck> findAll() {

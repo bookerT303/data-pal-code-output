@@ -30,10 +30,6 @@ public class TruckInspection {
     }
 
     public static TruckInspection createTruckInspection(String truckVin, int odometerReading, String notes) {
-        if (odometerReading > 100_000 && isEmpty(notes)) {
-            throw new IllegalStateException("Inspection notes are required on high mileage trucks");
-        }
-
         TruckInspection entry = new TruckInspection();
         entry.id = UUID.randomUUID();
         entry.truckVin = truckVin;

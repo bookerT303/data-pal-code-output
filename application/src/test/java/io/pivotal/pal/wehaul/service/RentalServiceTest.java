@@ -131,10 +131,10 @@ public class RentalServiceTest {
     }
 
     @Test
-    public void createRentableTruck() {
+    public void addTruck() {
         when(mockTruckSizeLookupClient.getSizeByMakeModel(any(), any())).thenReturn(RentalTruckSize.LARGE);
 
-        rentalService.createRentableTruck("cool-vin", "make", "model");
+        rentalService.addTruck("cool-vin", "make", "model");
 
         verify(mockTruckRepository).save(truckCaptor.capture());
         assertThat(truckCaptor.getValue()).isNotNull();
@@ -145,14 +145,14 @@ public class RentalServiceTest {
     }
 
     @Test
-    public void removeRentableTruck() {
+    public void preventRenting() {
         RentalTruck mockTruck = mock(RentalTruck.class);
         when(mockTruck.getVin()).thenReturn("best-vin");
 
         when(mockTruckRepository.findOne(any())).thenReturn(mockTruck);
 
 
-        rentalService.removeRentableTruck("best-vin");
+        rentalService.preventRenting("best-vin");
 
 
         verify(mockTruckRepository).findOne("best-vin");
@@ -161,23 +161,25 @@ public class RentalServiceTest {
     }
 
     @Test
-    public void removeRentableTruck_whenTruckNotFound() {
+    public void preventRenting_whenTruckNotFound() {
         when(mockTruckRepository.findOne(any())).thenReturn(null);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> rentalService.removeRentableTruck("vin"))
+                .isThrownBy(() -> rentalService.preventRenting("vin"))
                 .withMessage("No truck found with vin=vin");
     }
 
     @Test
-    public void addRentableTruck() {
+    public void allowRenting() {
+        String vin = "best-vin";
+
         RentalTruck mockTruck = mock(RentalTruck.class);
         when(mockTruck.getVin()).thenReturn("best-vin");
 
         when(mockTruckRepository.findOne(any())).thenReturn(mockTruck);
 
 
-        rentalService.addRentableTruck("best-vin");
+        rentalService.allowRenting(vin);
 
 
         verify(mockTruckRepository).findOne("best-vin");
@@ -186,11 +188,11 @@ public class RentalServiceTest {
     }
 
     @Test
-    public void addRentableTruck_whenTruckNotFound() {
+    public void allowRenting_whenTruckNotFound() {
         when(mockTruckRepository.findOne(any())).thenReturn(null);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> rentalService.addRentableTruck("vin"))
+                .isThrownBy(() -> rentalService.allowRenting("vin"))
                 .withMessage("No truck found with vin=vin");
     }
 }
