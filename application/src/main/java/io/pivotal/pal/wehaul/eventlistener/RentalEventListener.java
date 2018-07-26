@@ -19,11 +19,11 @@ public class RentalEventListener {
 
     @EventListener
     public void onRentalTruckReserved(RentalTruckReserved event) {
-
+        fleetService.removeTruckFromYard(event.getVin());
     }
 
     @EventListener
     public void onRentalTruckDroppedOff(RentalTruckDroppedOff event) {
-
+        fleetService.returnTruckToYard(event.getVin(), event.getDistanceTraveled());
     }
 }

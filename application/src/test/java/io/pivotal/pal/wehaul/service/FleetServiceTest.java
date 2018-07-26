@@ -32,9 +32,9 @@ public class FleetServiceTest {
     @Before
     public void setUp() {
         fleetService = new FleetService(
+                new FleetTruck.Factory(mockTruckInfoLookupClient),
                 mockFleetTruckRepository,
-                mockDistanceSinceLastInspectionRepository,
-                new FleetTruck.Factory(mockTruckInfoLookupClient));
+                mockDistanceSinceLastInspectionRepository);
     }
 
     @Test
@@ -134,7 +134,7 @@ public class FleetServiceTest {
     public void findAllDistanceSinceLastInspections() {
         fleetService.findAllDistanceSinceLastInspections();
 
-        verify(mockDistanceSinceLastInspectionRepository).findAll();
+        verify(mockDistanceSinceLastInspectionRepository).findAllDistanceSinceLastInspections();
     }
 
     @Test

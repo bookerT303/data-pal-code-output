@@ -17,12 +17,14 @@ public class FleetService {
     private final DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository;
     private final FleetTruck.Factory fleetTruckFactory;
 
-    public FleetService(FleetTruckRepository fleetTruckRepository,
-                        DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository,
-                        FleetTruck.Factory fleetTruckFactory) {
+    public FleetService(
+            FleetTruck.Factory fleetTruckFactory,
+            FleetTruckRepository fleetTruckRepository,
+            DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository
+    ) {
+        this.fleetTruckFactory = fleetTruckFactory;
         this.fleetTruckRepository = fleetTruckRepository;
         this.distanceSinceLastInspectionRepository = distanceSinceLastInspectionRepository;
-        this.fleetTruckFactory = fleetTruckFactory;
     }
 
     public void buyTruck(String vin, int odometerReading) {
@@ -79,7 +81,7 @@ public class FleetService {
     }
 
     public Collection<DistanceSinceLastInspection> findAllDistanceSinceLastInspections() {
-        return distanceSinceLastInspectionRepository.findAll();
+        return distanceSinceLastInspectionRepository.findAllDistanceSinceLastInspections();
     }
 
     public Collection<FleetTruck> findAll() {

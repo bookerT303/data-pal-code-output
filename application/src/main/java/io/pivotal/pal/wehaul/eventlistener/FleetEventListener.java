@@ -25,11 +25,11 @@ public class FleetEventListener {
 
     @EventListener
     public void onFleetTruckSentForInspection(FleetTruckSentForInspection event) {
-
+        rentalService.preventRenting(event.getVin());
     }
 
     @EventListener
     public void onFleetTruckReturnedFromInspection(FleetTruckReturnedFromInspection event) {
-
+        rentalService.allowRenting(event.getVin());
     }
 }

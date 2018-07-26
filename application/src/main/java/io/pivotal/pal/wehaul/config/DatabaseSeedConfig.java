@@ -46,7 +46,7 @@ public class DatabaseSeedConfig {
         // Create another Truck in both Fleet + Rental perspectives that is rentable/not in inspection
         String vin2 = "test-0002";
         FleetTruck inspectableFleetTruck = fleetTruckFactory.buyTruck(vin2, 0);
-        inspectableFleetTruck.returnFromInspection("some notes", 0);
+        inspectableFleetTruck.returnFromInspection("some-notes", 0);
         fleetTruckRepository.save(inspectableFleetTruck);
 
         RentalTruck rentableRentalTruck = rentalTruckFactory

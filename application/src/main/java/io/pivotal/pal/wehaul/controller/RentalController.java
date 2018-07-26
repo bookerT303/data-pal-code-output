@@ -2,9 +2,9 @@ package io.pivotal.pal.wehaul.controller;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.pivotal.pal.wehaul.service.FleetService;
 import io.pivotal.pal.wehaul.rental.domain.Rental;
 import io.pivotal.pal.wehaul.rental.domain.RentalTruck;
-import io.pivotal.pal.wehaul.service.FleetService;
 import io.pivotal.pal.wehaul.service.RentalService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +19,9 @@ import java.util.stream.Collectors;
 public class RentalController {
 
     private final RentalService rentalService;
-    private final FleetService fleetService;
 
-    public RentalController(RentalService rentalService, FleetService fleetService) {
+    public RentalController(RentalService rentalService) {
         this.rentalService = rentalService;
-        this.fleetService = fleetService;
     }
 
     @GetMapping
@@ -39,10 +37,7 @@ public class RentalController {
     public ResponseEntity<Void> reserveTruck(@RequestBody ReserveTruckDto reserveTruckDto) {
 
         String customerName = reserveTruckDto.getCustomerName();
-        RentalTruck rentalTruck = rentalService.reserve(customerName);
-
-        String vin = rentalTruck.getVin();
-        fleetService.removeTruckFromYard(vin);
+        rentalService.reserve(customerName);
 
         return ResponseEntity.ok().build();
     }
@@ -56,12 +51,10 @@ public class RentalController {
 
     @PostMapping("/{confirmationNumber}/drop-off")
     public ResponseEntity<Void> dropOff(@PathVariable UUID confirmationNumber,
-                                              @RequestBody DropOffRentalDto dropOffRentalDto) {
+                                        @RequestBody DropOffRentalDto dropOffRentalDto) {
 
         int distanceTraveled = dropOffRentalDto.getDistanceTraveled();
-        RentalTruck rental = rentalService.dropOff(confirmationNumber, distanceTraveled);
-        String vin = rental.getVin();
-        fleetService.returnTruckToYard(vin, distanceTraveled);
+        rentalService.dropOff(confirmationNumber, distanceTraveled);
 
         return ResponseEntity.ok().build();
     }

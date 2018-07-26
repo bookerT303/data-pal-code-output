@@ -4,7 +4,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -47,4 +51,20 @@ public class FleetTruckRepositoryTest {
         assertThat(truck).isNull();
     }
 
+    @SpringBootApplication
+    static class TestApp {
+
+        public static void main(String[] args) {
+            SpringApplication.run(FleetTruckRepositoryTest.TestApp.class, args);
+        }
+
+        @TestConfiguration
+        static class TestConfig {
+
+            @Bean
+            public FleetTruck.Factory truckFactory() {
+                return new FleetTruck.Factory(vin -> new MakeModel("stubbed-make", "stubbed-model"));
+            }
+        }
+    }
 }

@@ -22,7 +22,7 @@ public class RentalService {
         this.rentalTruckFactory = rentalTruckFactory;
     }
 
-    public RentalTruck reserve(String customerName) {
+    public void reserve(String customerName) {
         RentalTruck truck = rentalTruckRepository.findTop1ByStatus(RentalTruckStatus.RENTABLE);
         if (truck == null) {
             throw new IllegalStateException("No trucks available to rent");
@@ -31,8 +31,6 @@ public class RentalService {
         truck.reserve(customerName);
 
         rentalTruckRepository.save(truck);
-
-        return truck;
     }
 
     public void pickUp(UUID confirmationNumber) {
@@ -46,7 +44,7 @@ public class RentalService {
         rentalTruckRepository.save(rentalTruck);
     }
 
-    public RentalTruck dropOff(UUID confirmationNumber, int distanceTraveled) {
+    public void dropOff(UUID confirmationNumber, int distanceTraveled) {
         RentalTruck rentalTruck = rentalTruckRepository.findOneByRentalConfirmationNumber(confirmationNumber);
         if (rentalTruck == null) {
             throw new IllegalArgumentException(String.format("No rental found for id=%s", confirmationNumber));
@@ -55,8 +53,6 @@ public class RentalService {
         rentalTruck.dropOff(distanceTraveled);
 
         rentalTruckRepository.save(rentalTruck);
-
-        return rentalTruck;
     }
 
     public Collection<RentalTruck> findAll() {

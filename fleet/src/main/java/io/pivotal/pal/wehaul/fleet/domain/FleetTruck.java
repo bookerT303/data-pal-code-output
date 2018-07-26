@@ -1,6 +1,8 @@
 package io.pivotal.pal.wehaul.fleet.domain;
 
 import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckPurchased;
+import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckReturnedFromInspection;
+import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckSentForInspection;
 import org.springframework.data.domain.AbstractAggregateRoot;
 
 import javax.persistence.*;
@@ -48,6 +50,8 @@ public class FleetTruck extends AbstractAggregateRoot {
         TruckInspection inspection =
                 TruckInspection.createTruckInspection(vin, odometerReading, notes);
         this.inspections.add(inspection);
+
+        this.registerEvent(new FleetTruckReturnedFromInspection(this));
     }
 
     public void sendForInspection() {
@@ -56,6 +60,8 @@ public class FleetTruck extends AbstractAggregateRoot {
         }
 
         this.status = FleetTruckStatus.IN_INSPECTION;
+
+        this.registerEvent(new FleetTruckSentForInspection(this));
     }
 
     public void removeFromYard() {
