@@ -1,0 +1,245 @@
+{
+	"info": {
+		"_postman_id": "54d6a5b4-3ed6-4acd-8fb5-2302c69e34e2",
+		"name": "WeHaul",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "List All Trucks",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8080/trucks",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"trucks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Rental",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"customerName\": \"some-customer-name\"\n}"
+				},
+				"url": {
+					"raw": "localhost:8080/rentals",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"rentals"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List All Rentals",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8080/rentals",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"rentals"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Pick Up Rental",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8080/rentals/a3082317-5470-4ca0-8c15-cd15ee72590e/pick-up",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"rentals",
+						"a3082317-5470-4ca0-8c15-cd15ee72590e",
+						"pick-up"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Drop Off Rental",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"distanceTraveled\": 200\n}"
+				},
+				"url": {
+					"raw": "localhost:8080/rentals/a3082317-5470-4ca0-8c15-cd15ee72590e/drop-off",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"rentals",
+						"a3082317-5470-4ca0-8c15-cd15ee72590e",
+						"drop-off"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Miles Since Last Inspection by Truck",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8080/truck-since-inspections",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"truck-since-inspections"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Buy Truck",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"vin\": \"test-0002\",\n\t\"odometerReading\": 1\n}"
+				},
+				"url": {
+					"raw": "localhost:8080/trucks",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"trucks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Send Truck for Inspection",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "localhost:8080/trucks/test-0001/send-for-inspection",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"trucks",
+						"test-0001",
+						"send-for-inspection"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Return Truck from Inspection",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"notes\": \"inspection passed\",\n\t\"odometerReading\": 100\n}"
+				},
+				"url": {
+					"raw": "localhost:8080/trucks/test-0001/return-from-inspection",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"trucks",
+						"test-0001",
+						"return-from-inspection"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
