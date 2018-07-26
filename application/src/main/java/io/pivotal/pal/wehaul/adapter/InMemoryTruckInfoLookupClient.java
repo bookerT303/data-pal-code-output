@@ -1,12 +1,13 @@
-package io.pivotal.pal.wehaul.impl;
-
+package io.pivotal.pal.wehaul.adapter;
 
 import io.pivotal.pal.wehaul.fleet.domain.MakeModel;
 import io.pivotal.pal.wehaul.fleet.domain.TruckInfoLookupClient;
+import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 public class InMemoryTruckInfoLookupClient implements TruckInfoLookupClient {
 
     private final Map<String, MakeModel> dataStore;

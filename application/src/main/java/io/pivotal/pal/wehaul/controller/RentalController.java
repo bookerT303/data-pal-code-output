@@ -2,7 +2,6 @@ package io.pivotal.pal.wehaul.controller;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.pivotal.pal.wehaul.service.FleetService;
 import io.pivotal.pal.wehaul.rental.domain.Rental;
 import io.pivotal.pal.wehaul.rental.domain.RentalTruck;
 import io.pivotal.pal.wehaul.service.RentalService;

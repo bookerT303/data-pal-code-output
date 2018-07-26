@@ -1,4 +1,4 @@
-package io.pivotal.pal.wehaul.eventlistener;
+package io.pivotal.pal.wehaul.event.listener;
 
 import io.pivotal.pal.wehaul.fleet.domain.*;
 import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckPurchased;
@@ -34,7 +34,13 @@ public class FleetEventListenerTest {
         when(mockFleetTruck.getVin()).thenReturn(vin);
         when(mockFleetTruck.getMakeModel()).thenReturn(new MakeModel(make, model));
 
-        applicationEventPublisher.publishEvent(new FleetTruckPurchased(mockFleetTruck));
+        FleetTruckPurchased event = new FleetTruckPurchased(
+                mockFleetTruck.getVin(),
+                mockFleetTruck.getMakeModel().getMake(),
+                mockFleetTruck.getMakeModel().getModel(),
+                mockFleetTruck.getOdometerReading()
+        );
+        applicationEventPublisher.publishEvent(event);
 
         verify(mockRentalService, timeout(100)).addTruck(vin, make, model);
     }
@@ -45,7 +51,8 @@ public class FleetEventListenerTest {
         String vin = "vin";
         when(mockFleetTruck.getVin()).thenReturn(vin);
 
-        applicationEventPublisher.publishEvent(new FleetTruckSentForInspection(mockFleetTruck));
+        FleetTruckSentForInspection event = new FleetTruckSentForInspection(mockFleetTruck.getVin());
+        applicationEventPublisher.publishEvent(event);
 
         verify(mockRentalService, timeout(100)).preventRenting(vin);
     }
@@ -56,7 +63,14 @@ public class FleetEventListenerTest {
         String vin = "vin";
         when(mockFleetTruck.getVin()).thenReturn(vin);
 
-        applicationEventPublisher.publishEvent(new FleetTruckReturnedFromInspection(mockFleetTruck));
+        TruckInspection mockTruckInspection = mock(TruckInspection.class);
+
+        FleetTruckReturnedFromInspection event = new FleetTruckReturnedFromInspection(
+                mockFleetTruck.getVin(),
+                mockTruckInspection.getOdometerReading(),
+                mockTruckInspection.getNotes()
+        );
+        applicationEventPublisher.publishEvent(event);
 
         verify(mockRentalService, timeout(100)).allowRenting(vin);
     }

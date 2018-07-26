@@ -3,64 +3,85 @@ package io.pivotal.pal.wehaul.fleet.domain;
 import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckPurchased;
 import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckReturnedFromInspection;
 import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckSentForInspection;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FleetTruckTest {
 
-    @Mock
-    private TruckInfoLookupClient mockTruckInfoLookupClient;
-
-    private FleetTruck.Factory fleetTruckFactory;
-
-    @Before
-    public void setUp() {
+    @Test
+    public void purchaseTruck() {
         MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
-        when(mockTruckInfoLookupClient.getMakeModelByVin(any())).thenReturn(makeModel);
-        fleetTruckFactory = new FleetTruck.Factory(mockTruckInfoLookupClient);
+        String vin = "test-0001";
+
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
+
+        assertThat(truck.getVin()).isEqualTo(vin);
+        assertThat(truck.getStatus()).isEqualTo(FleetTruckStatus.IN_INSPECTION);
+        assertThat(truck.getOdometerReading()).isEqualTo(100);
+        assertThat(truck.getMakeModel()).isEqualTo(makeModel);
+
+        FleetTruckPurchased expectedEvent =
+                new FleetTruckPurchased(vin, makeModel.getMake(), makeModel.getModel(), 100);
+        assertThat(truck.getDomainEvents().get(0)).isEqualToComparingFieldByField(expectedEvent);
+    }
+
+    @Test
+    public void purchaseTruck_negativeOdometer() {
+        assertThatExceptionOfType(IllegalArgumentException.class)
+                .isThrownBy(() -> new FleetTruck(
+                        "test-0001",
+                        -1,
+                        new MakeModel("some-make", "some-model")
+                ))
+                .withMessage("Cannot buy a truck with negative odometer reading");
     }
 
     @Test
     public void returnFromInspection() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
 
         truck.returnFromInspection("notes", 100);
 
         assertThat(truck.getStatus()).isEqualTo(FleetTruckStatus.INSPECTABLE);
         assertThat(truck.getOdometerReading()).isEqualTo(100);
-        assertThat(truck.getDomainEvents().size()).isEqualTo(2);
-        assertThat(truck.getDomainEvents().get(1))
-                .isEqualToComparingOnlyGivenFields(new FleetTruckReturnedFromInspection(truck), "vin");
+        assertThat(truck.getDomainEvents()).hasSize(2);
+
+        FleetTruckReturnedFromInspection expectedEvent = new FleetTruckReturnedFromInspection(
+                vin,
+                100,
+                "notes"
+        );
+        assertThat(truck.getDomainEvents().get(1)).isEqualToComparingFieldByField(expectedEvent);
     }
 
     @Test
     public void sendForInspection() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
         truck.returnFromInspection("notes", 100);
 
         truck.sendForInspection();
 
         assertThat(truck.getStatus()).isEqualTo(FleetTruckStatus.IN_INSPECTION);
-        assertThat(truck.getDomainEvents().size()).isEqualTo(3);
-        assertThat(truck.getDomainEvents().get(2))
-                .isEqualToComparingOnlyGivenFields(new FleetTruckSentForInspection(truck), "vin");
+        assertThat(truck.getDomainEvents()).hasSize(3);
+
+        FleetTruckSentForInspection event = new FleetTruckSentForInspection(vin);
+        assertThat(truck.getDomainEvents().get(2)).isEqualToComparingFieldByField(event);
     }
 
     @Test
     public void removeFromYard() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
         truck.returnFromInspection("notes", 100);
 
         truck.removeFromYard();
@@ -71,7 +92,8 @@ public class FleetTruckTest {
     @Test
     public void returnToYard() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
         truck.returnFromInspection("notes", 100);
         truck.removeFromYard();
 
@@ -84,7 +106,8 @@ public class FleetTruckTest {
     @Test
     public void returnFromInspection_whenNotInInspection() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
         truck.returnFromInspection("notes", 100);
 
         assertThatExceptionOfType(IllegalStateException.class)
@@ -95,7 +118,8 @@ public class FleetTruckTest {
     @Test
     public void returnFromInspection_withLowerOdometerReading() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> truck.returnFromInspection("notes", 99))
@@ -103,9 +127,21 @@ public class FleetTruckTest {
     }
 
     @Test
+    public void returnFromInspection_whenHighMileageAndBlankInspectionNotes() {
+        String vin = "test-0001";
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100_000, makeModel);
+
+        assertThatExceptionOfType(IllegalStateException.class)
+                .isThrownBy(() -> truck.returnFromInspection("", 100_100))
+                .withMessage("Inspection notes are required on high mileage trucks");
+    }
+
+    @Test
     public void sendForInspection_whenAnythingButInspectable() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
 
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> truck.sendForInspection())
@@ -115,7 +151,8 @@ public class FleetTruckTest {
     @Test
     public void removeFromYard_whenAnythingButInspectable() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
 
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> truck.removeFromYard())
@@ -125,7 +162,8 @@ public class FleetTruckTest {
     @Test
     public void returnToYard_whenAnythingButNotInspectable() {
         String vin = "test-0001";
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, 100);
+        MakeModel makeModel = new MakeModel("TestTruckCo", "The Test One");
+        FleetTruck truck = new FleetTruck(vin, 100, makeModel);
 
         assertThatExceptionOfType(IllegalStateException.class)
                 .isThrownBy(() -> truck.returnToYard(200))

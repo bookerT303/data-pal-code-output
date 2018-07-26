@@ -1,4 +1,4 @@
-package io.pivotal.pal.wehaul.eventlistener;
+package io.pivotal.pal.wehaul.event.listener;
 
 import io.pivotal.pal.wehaul.rental.domain.event.RentalTruckDroppedOff;
 import io.pivotal.pal.wehaul.rental.domain.event.RentalTruckReserved;

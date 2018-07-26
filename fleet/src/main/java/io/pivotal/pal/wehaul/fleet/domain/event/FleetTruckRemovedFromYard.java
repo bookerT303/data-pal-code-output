@@ -2,15 +2,15 @@ package io.pivotal.pal.wehaul.fleet.domain.event;
 
 import java.util.Objects;
 
-public class FleetTruckSentForInspection implements FleetTruckEvent {
+public class FleetTruckRemovedFromYard implements FleetTruckEvent {
 
     private final String vin;
 
-    public FleetTruckSentForInspection(String vin) {
+    public FleetTruckRemovedFromYard(String vin) {
         this.vin = vin;
     }
 
-    private FleetTruckSentForInspection() {
+    private FleetTruckRemovedFromYard() {
         this.vin = null;
     }
 
@@ -22,7 +22,7 @@ public class FleetTruckSentForInspection implements FleetTruckEvent {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        FleetTruckSentForInspection that = (FleetTruckSentForInspection) o;
+        FleetTruckRemovedFromYard that = (FleetTruckRemovedFromYard) o;
         return Objects.equals(vin, that.vin);
     }
 
@@ -33,7 +33,7 @@ public class FleetTruckSentForInspection implements FleetTruckEvent {
 
     @Override
     public String toString() {
-        return "FleetTruckSentForInspection{" +
+        return "FleetTruckRemovedFromYard{" +
                 "vin='" + vin + '\'' +
                 '}';
     }

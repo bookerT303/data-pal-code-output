@@ -1,25 +1,35 @@
 package io.pivotal.pal.wehaul.fleet.domain.event;
 
-import io.pivotal.pal.wehaul.fleet.domain.FleetTruck;
-
-import java.time.LocalDateTime;
 import java.util.Objects;
 
-public class FleetTruckReturnedFromInspection {
-    private final String vin;
-    private final LocalDateTime createdDate;
+public class FleetTruckReturnedFromInspection implements FleetTruckEvent {
 
-    public FleetTruckReturnedFromInspection(FleetTruck truck) {
-        vin = truck.getVin();
-        this.createdDate = LocalDateTime.now();
+    private final String vin;
+    private final Integer odometerReading;
+    private final String notes;
+
+    public FleetTruckReturnedFromInspection(String vin, Integer odometerReading, String notes) {
+        this.vin = vin;
+        this.odometerReading = odometerReading;
+        this.notes = notes;
     }
 
-    public LocalDateTime getCreatedDate() {
-        return createdDate;
+    private FleetTruckReturnedFromInspection() {
+        this.vin = null;
+        this.odometerReading = null;
+        this.notes = null;
     }
 
     public String getVin() {
         return vin;
+    }
+
+    public Integer getOdometerReading() {
+        return odometerReading;
+    }
+
+    public String getNotes() {
+        return notes;
     }
 
     @Override
@@ -28,19 +38,21 @@ public class FleetTruckReturnedFromInspection {
         if (o == null || getClass() != o.getClass()) return false;
         FleetTruckReturnedFromInspection that = (FleetTruckReturnedFromInspection) o;
         return Objects.equals(vin, that.vin) &&
-                Objects.equals(createdDate, that.createdDate);
+                Objects.equals(odometerReading, that.odometerReading) &&
+                Objects.equals(notes, that.notes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(vin, createdDate);
+        return Objects.hash(vin, odometerReading, notes);
     }
 
     @Override
     public String toString() {
         return "FleetTruckReturnedFromInspection{" +
                 "vin='" + vin + '\'' +
-                ", createdDate=" + createdDate +
+                ", odometerReading=" + odometerReading +
+                ", notes='" + notes + '\'' +
                 '}';
     }
 }

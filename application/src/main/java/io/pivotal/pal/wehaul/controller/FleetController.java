@@ -2,7 +2,6 @@ package io.pivotal.pal.wehaul.controller;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspection;
 import io.pivotal.pal.wehaul.fleet.domain.FleetTruck;
 import io.pivotal.pal.wehaul.service.FleetService;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collection;
 
 @RestController
+@RequestMapping("/fleet/trucks")
 public class FleetController {
 
     private final FleetService fleetService;
@@ -19,7 +19,19 @@ public class FleetController {
         this.fleetService = fleetService;
     }
 
-    @PostMapping("/trucks")
+    @GetMapping
+    public ResponseEntity<Collection<FleetTruck>> getAllTrucks() {
+        Collection<FleetTruck> trucks = fleetService.findAll();
+        return ResponseEntity.ok(trucks);
+    }
+
+    @GetMapping("/{truckVin}")
+    public ResponseEntity<FleetTruck> getTruck(@PathVariable String truckVin) {
+        FleetTruck truck = fleetService.findOne(truckVin);
+        return ResponseEntity.ok(truck);
+    }
+
+    @PostMapping
     public ResponseEntity<Void> buyTruck(@RequestBody BuyTruckDto buyTruckDto) {
 
         String vin = buyTruckDto.getVin();
@@ -50,11 +62,6 @@ public class FleetController {
         fleetService.returnTruckFromInspection(vin, notes, odometerReading);
 
         return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/truck-since-inspections")
-    public Collection<DistanceSinceLastInspection> listDistanceSinceLastInspections() {
-        return fleetService.findAllDistanceSinceLastInspections();
     }
 
     static class ReturnTruckFromInspectionDto {

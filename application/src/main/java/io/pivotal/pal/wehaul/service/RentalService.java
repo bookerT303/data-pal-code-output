@@ -1,8 +1,6 @@
 package io.pivotal.pal.wehaul.service;
 
-import io.pivotal.pal.wehaul.rental.domain.RentalTruck;
-import io.pivotal.pal.wehaul.rental.domain.RentalTruckRepository;
-import io.pivotal.pal.wehaul.rental.domain.RentalTruckStatus;
+import io.pivotal.pal.wehaul.rental.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -13,13 +11,13 @@ import java.util.stream.StreamSupport;
 @Service
 public class RentalService {
 
+    private final TruckSizeLookupClient truckSizeLookupClient;
     private final RentalTruckRepository rentalTruckRepository;
-    private final RentalTruck.Factory rentalTruckFactory;
 
-    public RentalService(RentalTruckRepository rentalTruckRepository,
-                         RentalTruck.Factory rentalTruckFactory) {
+    public RentalService(TruckSizeLookupClient truckSizeLookupClient,
+                         RentalTruckRepository rentalTruckRepository) {
+        this.truckSizeLookupClient = truckSizeLookupClient;
         this.rentalTruckRepository = rentalTruckRepository;
-        this.rentalTruckFactory = rentalTruckFactory;
     }
 
     public void reserve(String customerName) {
@@ -63,7 +61,9 @@ public class RentalService {
     }
 
     public void addTruck(String vin, String make, String model) {
-        RentalTruck truck = rentalTruckFactory.createRentableTruck(vin, make, model);
+        RentalTruckSize truckSize = truckSizeLookupClient.getSizeByMakeModel(make, model);
+
+        RentalTruck truck = new RentalTruck(vin, truckSize);
 
         truck.preventRenting();
 

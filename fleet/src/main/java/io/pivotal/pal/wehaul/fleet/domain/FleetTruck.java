@@ -1,39 +1,60 @@
 package io.pivotal.pal.wehaul.fleet.domain;
 
-import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckPurchased;
-import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckReturnedFromInspection;
-import io.pivotal.pal.wehaul.fleet.domain.event.FleetTruckSentForInspection;
+import io.pivotal.pal.wehaul.fleet.domain.event.*;
 import org.springframework.data.domain.AbstractAggregateRoot;
 
-import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import static javax.persistence.CascadeType.ALL;
-
-@Entity
-@Table(name = "fleet_truck")
 public class FleetTruck extends AbstractAggregateRoot {
 
-    @Id
     private String vin;
 
-    @Enumerated(EnumType.STRING)
-    @Column
     private FleetTruckStatus status;
 
-    @Column
     private Integer odometerReading;
 
-    @Embedded
     private MakeModel makeModel;
 
-    @OneToMany(fetch = FetchType.EAGER, cascade = ALL)
-    @JoinColumn(name = "truckVin", referencedColumnName = "vin")
     private List<TruckInspection> inspections = new ArrayList<>();
+
+    public FleetTruck(String vin, int odometerReading, MakeModel makeModel) {
+        this.purchaseTruck(vin, odometerReading, makeModel);
+    }
 
     FleetTruck() {
         // default constructor
+    }
+
+    public FleetTruck(List<FleetTruckEvent> events) {
+        events.forEach(event -> this.handleEvent(event));
+    }
+
+    private void handleEvent(FleetTruckEvent event) {
+        if (event instanceof FleetTruckPurchased) {
+            handlePurchased((FleetTruckPurchased) event);
+        }
+    }
+
+    private void purchaseTruck(String vin, int odometerReading, MakeModel makeModel) {
+        if (odometerReading < 0) {
+            throw new IllegalArgumentException("Cannot buy a truck with negative odometer reading");
+        }
+
+        FleetTruckPurchased event =
+                new FleetTruckPurchased(vin, makeModel.getMake(), makeModel.getModel(), odometerReading);
+
+        handlePurchased(event);
+    }
+
+    private void handlePurchased(FleetTruckPurchased event) {
+        this.vin = event.getVin();
+        this.status = FleetTruckStatus.IN_INSPECTION;
+        this.odometerReading = event.getOdometerReading();
+        this.makeModel = new MakeModel(event.getMake(), event.getModel());
+
+        this.registerEvent(event);
     }
 
     public void returnFromInspection(String notes, int odometerReading) {
@@ -51,7 +72,12 @@ public class FleetTruck extends AbstractAggregateRoot {
                 TruckInspection.createTruckInspection(vin, odometerReading, notes);
         this.inspections.add(inspection);
 
-        this.registerEvent(new FleetTruckReturnedFromInspection(this));
+        FleetTruckReturnedFromInspection event = new FleetTruckReturnedFromInspection(
+                this.getVin(),
+                odometerReading,
+                notes
+        );
+        this.registerEvent(event);
     }
 
     public void sendForInspection() {
@@ -61,7 +87,7 @@ public class FleetTruck extends AbstractAggregateRoot {
 
         this.status = FleetTruckStatus.IN_INSPECTION;
 
-        this.registerEvent(new FleetTruckSentForInspection(this));
+        this.registerEvent(new FleetTruckSentForInspection(vin));
     }
 
     public void removeFromYard() {
@@ -70,14 +96,27 @@ public class FleetTruck extends AbstractAggregateRoot {
         }
 
         this.status = FleetTruckStatus.NOT_INSPECTABLE;
+
+        FleetTruckRemovedFromYard event = new FleetTruckRemovedFromYard(this.getVin());
+        this.registerEvent(event);
     }
 
     public void returnToYard(int distanceTraveled) {
         if (status != FleetTruckStatus.NOT_INSPECTABLE) {
             throw new IllegalStateException("Cannot allow truck inspection");
         }
+
         this.status = FleetTruckStatus.INSPECTABLE;
         this.odometerReading += distanceTraveled;
+
+        FleetTruckReturnedToYard event = new FleetTruckReturnedToYard(this.getVin(), distanceTraveled);
+        this.registerEvent(event);
+    }
+
+    public List<FleetTruckEvent> fleetDomainEvents() {
+        return domainEvents().stream()
+                .map(obj -> (FleetTruckEvent) obj)
+                .collect(Collectors.toList());
     }
 
     public String getVin() {
@@ -109,31 +148,5 @@ public class FleetTruck extends AbstractAggregateRoot {
                 ", makeModel=" + makeModel +
                 ", inspections=" + inspections +
                 '}';
-    }
-
-    public static class Factory {
-
-        private final TruckInfoLookupClient truckInfoLookupClient;
-
-        public Factory(TruckInfoLookupClient truckInfoLookupClient) {
-            this.truckInfoLookupClient = truckInfoLookupClient;
-        }
-
-        public FleetTruck buyTruck(String vin, int odometerReading) {
-            if (odometerReading < 0) {
-                throw new IllegalArgumentException("Cannot buy a truck with negative odometer reading");
-            }
-            FleetTruck fleetTruck = new FleetTruck();
-            fleetTruck.vin = vin;
-            fleetTruck.status = FleetTruckStatus.IN_INSPECTION;
-            fleetTruck.odometerReading = odometerReading;
-            fleetTruck.makeModel = truckInfoLookupClient.getMakeModelByVin(vin);
-
-            FleetTruckPurchased fleetTruckPurchased = new FleetTruckPurchased(fleetTruck);
-            fleetTruck.registerEvent(fleetTruckPurchased);
-
-            return fleetTruck;
-        }
-
     }
 }

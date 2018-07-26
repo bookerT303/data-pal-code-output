@@ -26,6 +26,12 @@ public class RentalTruck extends AbstractAggregateRoot {
     @JoinColumn(name = "truckVin")
     private Rental rental;
 
+    public RentalTruck(String vin, RentalTruckSize truckSize) {
+        this.vin = vin;
+        this.status = RentalTruckStatus.RENTABLE;
+        this.size = truckSize;
+    }
+
     RentalTruck() {
         // default constructor
     }
@@ -91,18 +97,5 @@ public class RentalTruck extends AbstractAggregateRoot {
 
     public static class Factory {
 
-        private final TruckSizeLookupClient truckSizeLookupClient;
-
-        public Factory(TruckSizeLookupClient truckSizeLookupClient) {
-            this.truckSizeLookupClient = truckSizeLookupClient;
-        }
-
-        public RentalTruck createRentableTruck(String vin, String make, String model) {
-            RentalTruck truck = new RentalTruck();
-            truck.vin = vin;
-            truck.status = RentalTruckStatus.RENTABLE;
-            truck.size = truckSizeLookupClient.getSizeByMakeModel(make, model);
-            return truck;
-        }
     }
 }

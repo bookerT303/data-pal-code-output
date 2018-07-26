@@ -1,9 +1,9 @@
 package io.pivotal.pal.wehaul.service;
 
-import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspection;
-import io.pivotal.pal.wehaul.fleet.domain.DistanceSinceLastInspectionRepository;
 import io.pivotal.pal.wehaul.fleet.domain.FleetTruck;
 import io.pivotal.pal.wehaul.fleet.domain.FleetTruckRepository;
+import io.pivotal.pal.wehaul.fleet.domain.MakeModel;
+import io.pivotal.pal.wehaul.fleet.domain.TruckInfoLookupClient;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -13,22 +13,19 @@ import java.util.stream.StreamSupport;
 @Service
 public class FleetService {
 
+    private final TruckInfoLookupClient truckInfoLookupClient;
     private final FleetTruckRepository fleetTruckRepository;
-    private final DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository;
-    private final FleetTruck.Factory fleetTruckFactory;
 
-    public FleetService(
-            FleetTruck.Factory fleetTruckFactory,
-            FleetTruckRepository fleetTruckRepository,
-            DistanceSinceLastInspectionRepository distanceSinceLastInspectionRepository
-    ) {
-        this.fleetTruckFactory = fleetTruckFactory;
+    public FleetService(TruckInfoLookupClient truckInfoLookupClient,
+                        FleetTruckRepository fleetTruckRepository) {
+        this.truckInfoLookupClient = truckInfoLookupClient;
         this.fleetTruckRepository = fleetTruckRepository;
-        this.distanceSinceLastInspectionRepository = distanceSinceLastInspectionRepository;
     }
 
     public void buyTruck(String vin, int odometerReading) {
-        FleetTruck truck = fleetTruckFactory.buyTruck(vin, odometerReading);
+        MakeModel makeModel = truckInfoLookupClient.getMakeModelByVin(vin);
+
+        FleetTruck truck = new FleetTruck(vin, odometerReading, makeModel);
 
         fleetTruckRepository.save(truck);
     }
@@ -80,13 +77,13 @@ public class FleetService {
         fleetTruckRepository.save(truck);
     }
 
-    public Collection<DistanceSinceLastInspection> findAllDistanceSinceLastInspections() {
-        return distanceSinceLastInspectionRepository.findAllDistanceSinceLastInspections();
-    }
-
     public Collection<FleetTruck> findAll() {
         return StreamSupport
-            .stream(fleetTruckRepository.findAll().spliterator(), false)
-            .collect(Collectors.toList());
+                .stream(fleetTruckRepository.findAll().spliterator(), false)
+                .collect(Collectors.toList());
+    }
+
+    public FleetTruck findOne(String vin) {
+        return fleetTruckRepository.findOne(vin);
     }
 }
