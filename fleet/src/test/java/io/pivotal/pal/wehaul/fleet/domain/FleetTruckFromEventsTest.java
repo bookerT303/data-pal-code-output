@@ -24,7 +24,7 @@ public class FleetTruckFromEventsTest {
         assertThat(truck.getOdometerReading()).isEqualTo(100);
         assertThat(truck.getMakeModel()).isEqualTo(new MakeModel("MAKE", "MODEL"));
 
-        assertThat(truck.fleetDomainEvents()).hasSize(0);
+        assertThat(truck.unsavedFleetDomainEvents()).hasSize(0);
     }
 
     @Test
@@ -45,7 +45,7 @@ public class FleetTruckFromEventsTest {
                 "id"
         );
 
-        assertThat(truck.fleetDomainEvents()).hasSize(0);
+        assertThat(truck.unsavedFleetDomainEvents()).hasSize(0);
     }
 
     @Test
@@ -60,7 +60,7 @@ public class FleetTruckFromEventsTest {
 
         assertThat(truck.getStatus()).isEqualTo(FleetTruckStatus.IN_INSPECTION);
 
-        assertThat(truck.fleetDomainEvents()).hasSize(0);
+        assertThat(truck.unsavedFleetDomainEvents()).hasSize(0);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class FleetTruckFromEventsTest {
 
         assertThat(truck.getStatus()).isEqualTo(FleetTruckStatus.NOT_INSPECTABLE);
 
-        assertThat(truck.fleetDomainEvents()).hasSize(0);
+        assertThat(truck.unsavedFleetDomainEvents()).hasSize(0);
     }
 
     @Test
@@ -92,6 +92,6 @@ public class FleetTruckFromEventsTest {
         assertThat(truck.getStatus()).isEqualTo(FleetTruckStatus.INSPECTABLE);
         assertThat(truck.getOdometerReading()).isEqualTo(300);
 
-        assertThat(truck.fleetDomainEvents()).hasSize(0);
+        assertThat(truck.unsavedFleetDomainEvents()).hasSize(0);
     }
 }

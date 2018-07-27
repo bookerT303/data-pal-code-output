@@ -64,6 +64,87 @@ public class FleetTruckEventSourcedRepositoryTest {
     }
 
     @Test
+    public void findAll() throws JsonProcessingException {
+        FleetTruckPurchased event1 = new FleetTruckPurchased("vin-1", "apple", "banana", 5);
+        FleetTruckPurchased event2 = new FleetTruckPurchased("vin-2", "carrot", "date", 100);
+        FleetTruckReturnedFromInspection event3 = new FleetTruckReturnedFromInspection("vin-2", 101, "eggplant");
+
+        when(mockEventStoreRepository.findAll(any(Sort.class)))
+                .thenReturn(asList(
+                        new FleetTruckEventStoreEntity(new FleetTruckEventStoreEntityKey("vin-1", 0), FleetTruckPurchased.class, objectMapper.writeValueAsString(event1)),
+                        new FleetTruckEventStoreEntity(new FleetTruckEventStoreEntityKey("vin-2", 0), FleetTruckPurchased.class, objectMapper.writeValueAsString(event2)),
+                        new FleetTruckEventStoreEntity(new FleetTruckEventStoreEntityKey("vin-2", 1), FleetTruckReturnedFromInspection.class, objectMapper.writeValueAsString(event3))
+                ));
+
+
+        List<FleetTruck> trucks = StreamSupport
+                .stream(fleetTruckRepository.findAll().spliterator(), false)
+                .collect(Collectors.toList());
+
+
+        assertThat(trucks).hasSize(2);
+
+        assertThat(trucks.get(0).getVin()).isEqualTo("vin-1");
+        assertThat(trucks.get(0).getStatus()).isEqualTo(FleetTruckStatus.IN_INSPECTION);
+        assertThat(trucks.get(0).getOdometerReading()).isEqualTo(5);
+
+        assertThat(trucks.get(1).getVin()).isEqualTo("vin-2");
+        assertThat(trucks.get(1).getStatus()).isEqualTo(FleetTruckStatus.INSPECTABLE);
+        assertThat(trucks.get(1).getOdometerReading()).isEqualTo(101);
+
+        assertThat(trucks.get(1).getInspections()).hasSize(1);
+    }
+
+    @Test
+    public void findOne() throws JsonProcessingException {
+        FleetTruckPurchased existingEvent1 =
+                new FleetTruckPurchased("some-vin", "some-make", "some-model", 1000);
+        FleetTruckEventStoreEntity existingEventStoreEntity1 = new FleetTruckEventStoreEntity(
+                new FleetTruckEventStoreEntityKey("some-vin", 0),
+                FleetTruckPurchased.class,
+                objectMapper.writeValueAsString(existingEvent1)
+        );
+
+        FleetTruckReturnedFromInspection existingEvent2 =
+                new FleetTruckReturnedFromInspection("some-vin", 2000, "some-notes");
+        FleetTruckEventStoreEntity existingEventStoreEntity2 = new FleetTruckEventStoreEntity(
+                new FleetTruckEventStoreEntityKey("some-vin", 1),
+                FleetTruckReturnedFromInspection.class,
+                objectMapper.writeValueAsString(existingEvent2)
+        );
+
+        when(mockEventStoreRepository.findAllByKeyVinOrderByKeyVersion(any()))
+                .thenReturn(asList(existingEventStoreEntity1, existingEventStoreEntity2));
+
+
+        FleetTruck fleetTruck = fleetTruckRepository.findOne("some-vin");
+
+
+        assertThat(fleetTruck.getVin()).isEqualTo("some-vin");
+        assertThat(fleetTruck.getStatus()).isEqualTo(FleetTruckStatus.INSPECTABLE);
+        assertThat(fleetTruck.getOdometerReading()).isEqualTo(2000);
+        assertThat(fleetTruck.getMakeModel()).isEqualTo(new MakeModel("some-make", "some-model"));
+
+        assertThat(fleetTruck.getInspections()).hasSize(1);
+        assertThat(fleetTruck.getInspections().get(0).getTruckVin()).isEqualTo("some-vin");
+        assertThat(fleetTruck.getInspections().get(0).getOdometerReading()).isEqualTo(2000);
+        assertThat(fleetTruck.getInspections().get(0).getNotes()).isEqualTo("some-notes");
+
+        assertThat(fleetTruck.unsavedFleetDomainEvents()).isEmpty();
+
+        verify(mockEventStoreRepository).findAllByKeyVinOrderByKeyVersion("some-vin");
+    }
+
+    @Test
+    public void findOne_notFound() {
+        when(mockEventStoreRepository.findAllByKeyVinOrderByKeyVersion(any())).thenReturn(emptyList());
+
+        FleetTruck found = fleetTruckRepository.findOne("bad-vin");
+
+        assertThat(found).isNull();
+    }
+
+    @Test
     public void save_withNewEvents() throws IOException {
         FleetTruck fleetTruck = new FleetTruck("some-vin", 1000, new MakeModel("some-make", "some-model"));
         fleetTruck.returnFromInspection("some-notes", 2000);
@@ -75,8 +156,9 @@ public class FleetTruckEventSourcedRepositoryTest {
         assertThat(savedFleetTruck).isEqualToComparingOnlyGivenFields(fleetTruck, "vin");
 
         verify(mockEventStoreRepository).save(eventEntitiesCaptor.capture());
-        List<FleetTruckEventStoreEntity> savedEvents = stream(eventEntitiesCaptor.getValue().spliterator(), false)
+        List<FleetTruckEventStoreEntity> collect = stream(eventEntitiesCaptor.getValue().spliterator(), false)
                 .collect(toList());
+        List<FleetTruckEventStoreEntity> savedEvents = collect;
 
         assertThat(savedEvents).hasSize(2);
         assertThat(savedEvents).extracting(se -> se.getKey().getVin()).containsOnly(fleetTruck.getVin());
@@ -133,7 +215,7 @@ public class FleetTruckEventSourcedRepositoryTest {
         FleetTruck mockFleetTruck = mock(FleetTruck.class);
         FleetTruckEvent mockFleetTruckEvent1 = new FleetTruckPurchased("vin", "make", "model", 0);
         FleetTruckEvent mockFleetTruckEvent2 = new FleetTruckReturnedFromInspection("vin", 0, "notes");
-        when(mockFleetTruck.fleetDomainEvents())
+        when(mockFleetTruck.unsavedFleetDomainEvents())
                 .thenReturn(Arrays.asList(mockFleetTruckEvent1, mockFleetTruckEvent2));
 
         FleetTruck savedFleetTruck = fleetTruckRepository.save(mockFleetTruck);
@@ -145,83 +227,16 @@ public class FleetTruckEventSourcedRepositoryTest {
     }
 
     @Test
-    public void findOne() throws JsonProcessingException {
-        FleetTruckPurchased existingEvent1 =
-                new FleetTruckPurchased("some-vin", "some-make", "some-model", 1000);
-        FleetTruckEventStoreEntity existingEventStoreEntity1 = new FleetTruckEventStoreEntity(
-                new FleetTruckEventStoreEntityKey("some-vin", 0),
-                FleetTruckPurchased.class,
-                objectMapper.writeValueAsString(existingEvent1)
-        );
+    public void save_noEvents() {
+        FleetTruck mockFleetTruck = mock(FleetTruck.class);
+        when(mockFleetTruck.unsavedFleetDomainEvents())
+                .thenReturn(emptyList());
+        when(mockFleetTruck.getVin()).thenReturn("vin");
 
-        FleetTruckReturnedFromInspection existingEvent2 =
-                new FleetTruckReturnedFromInspection("some-vin", 2000, "some-notes");
-        FleetTruckEventStoreEntity existingEventStoreEntity2 = new FleetTruckEventStoreEntity(
-                new FleetTruckEventStoreEntityKey("some-vin", 1),
-                FleetTruckReturnedFromInspection.class,
-                objectMapper.writeValueAsString(existingEvent2)
-        );
+        FleetTruck savedFleetTruck = fleetTruckRepository.save(mockFleetTruck);
 
-        when(mockEventStoreRepository.findAllByKeyVinOrderByKeyVersion(any()))
-                .thenReturn(asList(existingEventStoreEntity1, existingEventStoreEntity2));
+        assertThat(savedFleetTruck).isSameAs(mockFleetTruck);
 
-
-        FleetTruck fleetTruck = fleetTruckRepository.findOne("some-vin");
-
-
-        assertThat(fleetTruck.getVin()).isEqualTo("some-vin");
-        assertThat(fleetTruck.getStatus()).isEqualTo(FleetTruckStatus.INSPECTABLE);
-        assertThat(fleetTruck.getOdometerReading()).isEqualTo(2000);
-        assertThat(fleetTruck.getMakeModel()).isEqualTo(new MakeModel("some-make", "some-model"));
-
-        assertThat(fleetTruck.getInspections()).hasSize(1);
-        assertThat(fleetTruck.getInspections().get(0).getTruckVin()).isEqualTo("some-vin");
-        assertThat(fleetTruck.getInspections().get(0).getOdometerReading()).isEqualTo(2000);
-        assertThat(fleetTruck.getInspections().get(0).getNotes()).isEqualTo("some-notes");
-
-        assertThat(fleetTruck.fleetDomainEvents()).isEmpty();
-
-        verify(mockEventStoreRepository).findAllByKeyVinOrderByKeyVersion("some-vin");
-    }
-
-    @Test
-    public void findOne_notFound() {
-        when(mockEventStoreRepository.findAllByKeyVinOrderByKeyVersion(any())).thenReturn(emptyList());
-
-        FleetTruck found = fleetTruckRepository.findOne("bad-vin");
-
-        assertThat(found).isNull();
-    }
-
-    @Test
-    public void findAll() throws JsonProcessingException {
-        FleetTruckPurchased event1 = new FleetTruckPurchased("vin-1", "apple", "banana", 5);
-        FleetTruckPurchased event2 = new FleetTruckPurchased("vin-2", "carrot", "date", 100);
-        FleetTruckReturnedFromInspection event3 = new FleetTruckReturnedFromInspection("vin-2", 101, "eggplant");
-
-        when(mockEventStoreRepository.findAll(any(Sort.class)))
-                .thenReturn(asList(
-                        new FleetTruckEventStoreEntity(new FleetTruckEventStoreEntityKey("vin-1", 0), FleetTruckPurchased.class, objectMapper.writeValueAsString(event1)),
-                        new FleetTruckEventStoreEntity(new FleetTruckEventStoreEntityKey("vin-2", 0), FleetTruckPurchased.class, objectMapper.writeValueAsString(event2)),
-                        new FleetTruckEventStoreEntity(new FleetTruckEventStoreEntityKey("vin-2", 1), FleetTruckReturnedFromInspection.class, objectMapper.writeValueAsString(event3))
-                ));
-
-
-        List<FleetTruck> trucks = StreamSupport
-                .stream(fleetTruckRepository.findAll().spliterator(), false)
-                .collect(Collectors.toList());
-
-
-        assertThat(trucks).hasSize(2);
-
-        assertThat(trucks.get(0).getVin()).isEqualTo("vin-1");
-        assertThat(trucks.get(0).getStatus()).isEqualTo(FleetTruckStatus.IN_INSPECTION);
-        assertThat(trucks.get(0).getOdometerReading()).isEqualTo(5);
-
-        assertThat(trucks.get(1).getVin()).isEqualTo("vin-2");
-        assertThat(trucks.get(1).getStatus()).isEqualTo(FleetTruckStatus.INSPECTABLE);
-        assertThat(trucks.get(1).getOdometerReading()).isEqualTo(101);
-
-        assertThat(trucks.get(1).getInspections()).hasSize(1);
+        verify(mockEventStoreRepository, never()).findAllByKeyVinOrderByKeyVersion(any());
     }
 }
